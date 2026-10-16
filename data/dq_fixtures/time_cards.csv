@@ -1,0 +1,2 @@
+time_card_id,employee_id,department_id,work_date,shift_code,hours_worked,overtime_hours
+TC-FIX0001,EMP-FIX006,NSH-ICU,2026-08-01,DAYS,48,50

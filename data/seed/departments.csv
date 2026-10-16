@@ -1,0 +1,9 @@
+department_id,facility_id,department_name,service_line,unit_type,target_headcount,vacancy_rate
+NSH-MS-4W,NSH,Med-Surg 4 West,Med-Surg,med_surg,30,0.111
+NSH-ICU,NSH,Intensive Care Unit,Critical Care,icu,22,0.057
+NSH-ED,NSH,Emergency Department,Emergency,ed,34,0.141
+NSH-TELE,NSH,Telemetry,Med-Surg,telemetry,20,0.2579
+CVM-MS-3E,CVM,Med-Surg 3 East,Med-Surg,med_surg,19,0.1334
+CVM-ICU,CVM,Intensive Care Unit,Critical Care,icu,31,0.089
+CVM-LD,CVM,Labor and Delivery,Women's Health,ld,11,0.1568
+CVM-OR,CVM,Operating Room,Perioperative,or,13,0.2736

@@ -1,0 +1,28 @@
+{
+  "project": "CareStaff Insight",
+  "profile": "seed",
+  "random_seed": 42,
+  "as_of_date": "2026-09-01",
+  "history_start": "2025-09-01",
+  "future_end": "2026-11-30",
+  "n_active_employees_target": 180,
+  "row_counts": {
+    "facilities": 2,
+    "departments": 8,
+    "roles": 5,
+    "shifts": 3,
+    "compensation_bands": 15,
+    "role_cost_assumptions": 5,
+    "employees": 209,
+    "schedule_assignments": 27452,
+    "time_cards": 24750,
+    "absences": 2702,
+    "staffing_requirements": 8784,
+    "census_proxy": 2928,
+    "open_positions": 31,
+    "attrition_events": 54
+  },
+  "synthetic": true,
+  "contains_phi": false,
+  "contains_protected_characteristics": false
+}

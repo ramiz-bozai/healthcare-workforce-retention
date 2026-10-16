@@ -1,0 +1,16 @@
+role_code,band_code,band_rank
+RN,B1,1
+RN,B2,2
+RN,B3,3
+LPN,B1,1
+LPN,B2,2
+LPN,B3,3
+CNA,B1,1
+CNA,B2,2
+CNA,B3,3
+RT,B1,1
+RT,B2,2
+RT,B3,3
+ED_TECH,B1,1
+ED_TECH,B2,2
+ED_TECH,B3,3

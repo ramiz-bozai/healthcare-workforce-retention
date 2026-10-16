@@ -1,0 +1,9 @@
+employee_id,first_name,last_initial,display_name,role_code,department_id,facility_id,manager_employee_id,hire_date,fte,primary_shift_code,compensation_band,employment_status,termination_date
+EMP-FIX001,Fixture,A,Fixture A.,RN,NSH-ICU,NSH,EMP-000001,2024-01-15,1.0,DAYS,B1,active,
+EMP-FIX001,Fixture,A,Fixture A.,RN,NSH-ICU,NSH,EMP-000001,2024-01-15,1.0,DAYS,B1,active,
+EMP-FIX002,Fixture,B,Fixture B.,RN,NSH-ICU,NSH,EMP-000001,,1.0,DAYS,B1,active,
+EMP-FIX003,Fixture,C,Fixture C.,RN,NO-SUCH-UNIT,NSH,EMP-000001,2024-01-15,1.0,DAYS,B1,active,
+EMP-FIX004,Fixture,D,Fixture D.,RN,NSH-ICU,NSH,EMP-000001,2024-01-15,3.5,DAYS,B1,active,
+EMP-FIX005,Fixture,E,Fixture E.,RN,NSH-ICU,NSH,EMP-000001,2024-01-15,1.0,DAYS,B1,terminated,2023-06-01
+EMP-FIX006,Fixture,F,Fixture F.,RN,NSH-ICU,NSH,EMP-000001,2024-01-15,1.0,DAYS,B1,active,
+EMP-FIX007,Fixture,G,Fixture G.,RN,NSH-ICU,NSH,EMP-000001,2024-01-15,1.0,DAYS,B1,on_leave,
