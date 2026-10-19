@@ -24,7 +24,7 @@ In the workspace:
 2. Check out the branch you pushed (this work was done on `initial-build`).
 3. Confirm you can open `pipelines/carestaff_insight/bronze.py` and `conf/default.yaml` from the folder.
 
-You will import `src.*` and `data_generation.*` from the **repository root**. The pipeline files add that root to `sys.path` via `_bootstrap.py`. You do not need a wheel.
+You will import `src.*` and `data_generation.*` from the **repository root**. Each pipeline file puts that root on `sys.path` itself. Lakeflow runs every file as an **isolated notebook**, so a sibling `import _bootstrap` fails with `PYTHON.MODULE_NOT_FOUND_ERROR`. You do not need a wheel.
 
 ## 2. Unity Catalog objects (you create)
 
@@ -68,6 +68,8 @@ You can upload in the Catalog Explorer UI. This repo does not copy files for you
 4. Pipeline configuration (key / value):
    - `volume_path` = `/Volumes/<catalog>/bronze/workforce_landing`  
      Default in code if you omit it: `/Volumes/healthcare_ops/bronze/workforce_landing`
+   - `repo_root` = the Git folder path, e.g. `/Workspace/Users/<you>/healthcare-workforce-retention`  
+     Required if `__file__` is a temp isolated-notebook path and `src/` cannot be discovered by walking parents.
 5. Development mode is fine for the demo. Serverless or a small classic cluster, your choice.
 6. **You** click **Start**. Wait until gold tables succeed.
 
@@ -99,6 +101,15 @@ Uniqueness and foreign keys in `conf/dq_rules.yaml` have **no** `row_predicate`.
 - `coverage_ratio_7d` is populated; `predicted_attrition_rate_90d` is **not** on that table (scores are a later job)
 - Employee columns still have no age/sex/race/SSN
 - Nothing in this laptop’s repo flipped `ai.genie_live` or `ai.model_serving_live`
+
+## Troubleshooting
+
+**`PYTHON.MODULE_NOT_FOUND_ERROR` on bronze.py / silver.py / gold.py**  
+Lakeflow isolated the notebook, so `import _bootstrap` (or `import src`) could not see the Git folder. Pull this revision, then in pipeline settings add:
+
+- `repo_root` = `/Workspace/Users/<you>/healthcare-workforce-retention`
+
+Re-run. The next import that can fail is `yaml` (PyYAML) on a cluster that does not ship it — add `pyyaml` as a pipeline environment / PyPI dependency if that happens.
 
 ## What this is not
 
