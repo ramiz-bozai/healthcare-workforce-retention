@@ -1,9 +1,9 @@
 """Find the Git-folder repo root and put it on sys.path.
 
-Lakeflow runs each pipeline file as an isolated notebook. Sibling imports
-such as `import _bootstrap` fail with MODULE_NOT_FOUND. Call this (or the
-inlined copy in pipelines/carestaff_insight/*.py) before importing `src`
-or `data_generation`.
+Used by local notebooks and tests. Lakeflow files under
+`pipelines/carestaff_insight/` are self-contained and must not call this:
+isolated notebooks often have `__file__` outside the repo and `/Workspace`
+is not FUSE-mounted, so `Path.is_dir()` cannot see `src/`.
 """
 
 from __future__ import annotations
@@ -46,8 +46,8 @@ def find_repo_root(*, file_path: Path | None = None, cwd: Path | None = None, co
             return item
     raise ModuleNotFoundError(
         "Could not find repo root (need src/ and data_generation/). "
-        "In the Lakeflow pipeline configuration add "
-        "repo_root = /Workspace/Users/<you>/healthcare-workforce-retention"
+        "Lakeflow recipes must stay self-contained; do not import this helper from "
+        "pipelines/carestaff_insight."
     )
 
 

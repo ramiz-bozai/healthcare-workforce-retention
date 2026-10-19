@@ -11,16 +11,15 @@ uv run python -m src.pipeline --profile seed
 | File | Role |
 |---|---|
 | `bronze.py` | Volume CSV → `bronze_<table>` (VARCHAR + ingest metadata) |
-| `silver.py` | Typed silver + per-row expects from `conf/dq_rules.yaml` |
-| `gold.py` | `src/gold/sql.py` after Spark rewrite → `gold_<table>` |
+| `silver.py` | Typed silver + per-row expects (same IDs as `conf/dq_rules.yaml`) |
+| `gold.py` | Spark rewrite of `src/gold/sql.py`, inlined → `gold_<table>` |
 
-Each file inlines repo-root discovery. Do not add a sibling `_bootstrap.py` — Lakeflow isolates notebooks, so that import raises `MODULE_NOT_FOUND`.
+Each file is **self-contained** (dlt / pyspark only). Do not import `src`, `data_generation`, yaml, or a sibling `_bootstrap.py` — Lakeflow isolates notebooks, so those imports raise `MODULE_NOT_FOUND`.
 
 Pipeline config:
 
 - `volume_path` (default `/Volumes/healthcare_ops/bronze/workforce_landing`)
-- `repo_root` = Git folder path (needed when isolated notebooks do not keep `__file__` inside the repo)
 
-Destination catalog/schema are set in the pipeline UI, not in this folder.
+No `repo_root`. Destination catalog/schema are set in the pipeline UI, not in this folder.
 
 Do not claim this pipeline, Genie, Model Serving, or a Databricks App is live until you run it in the workspace.

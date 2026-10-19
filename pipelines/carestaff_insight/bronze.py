@@ -1,71 +1,36 @@
 """Lakeflow / DLT bronze landing. Workspace-only — not executed locally.
 
+Self-contained: stdlib + dlt/pyspark only. Lakeflow isolates each file as a
+notebook, so this module must not import `src`, `data_generation`, or a sibling.
+
 Reads CSV from a UC Volume. Payload columns remain strings; metadata columns
 match the local DuckDB bronze contract: _ingest_ts, _source_path, _record_origin.
 """
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-
-def _ensure_repo_on_path() -> None:
-    """Lakeflow isolates each notebook. Sibling `import _bootstrap` will not work."""
-    conf_root = ""
+try:
+    import dlt  # Databricks Lakeflow / DLT
+except ImportError:
     try:
-        conf_root = str(spark.conf.get("repo_root", "") or "")  # noqa: F821
-    except Exception:
-        conf_root = ""
-    try:
-        file_path = Path(__file__).resolve()
-    except NameError:
-        file_path = None
-    seen: set[Path] = set()
-    ordered: list[Path] = []
-
-    def _add(raw: object) -> None:
-        if not raw:
-            return
-        path = Path(str(raw))
-        try:
-            path = path.expanduser().resolve()
-        except OSError:
-            pass
-        for item in (path, *path.parents):
-            if item not in seen:
-                seen.add(item)
-                ordered.append(item)
-
-    _add(conf_root)
-    _add(file_path)
-    _add(Path.cwd())
-    for item in ordered:
-        if (item / "src").is_dir() and (item / "data_generation").is_dir():
-            text = str(item)
-            if text not in sys.path:
-                sys.path.insert(0, text)
-            return
-    raise ModuleNotFoundError(
-        "Could not find repo root (src/ and data_generation/). "
-        "Set pipeline configuration repo_root to the Git folder path, "
-        "for example /Workspace/Users/<you>/healthcare-workforce-retention"
-    )
-
-
-_ensure_repo_on_path()
+        from pyspark import pipelines as dlt  # Spark Declarative Pipelines
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "pipelines/carestaff_insight is the Databricks path. "
+            "Run `python -m src.pipeline` locally."
+        ) from exc
 
 try:
-    import dlt
     from pyspark.sql import functions as F
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        "pipelines/carestaff_insight is the Databricks path. Run `python -m src.pipeline` locally."
+        "pipelines/carestaff_insight is the Databricks path. "
+        "Run `python -m src.pipeline` locally."
     ) from exc
 
-from data_generation.schema import TABLE_ORDER
-
 DEFAULT_VOLUME = "/Volumes/healthcare_ops/bronze/workforce_landing"
+
+TABLE_ORDER = ['facilities', 'departments', 'roles', 'shifts', 'compensation_bands', 'role_cost_assumptions', 'employees', 'schedule_assignments', 'time_cards', 'absences', 'staffing_requirements', 'census_proxy', 'open_positions', 'attrition_events']
 
 
 def _read_csv(table_name: str):
