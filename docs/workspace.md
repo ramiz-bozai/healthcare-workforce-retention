@@ -107,6 +107,9 @@ Lakeflow isolated the notebook. Older copies imported `src`, `data_generation`, 
 
 If the error names a missing CSV, the Volume is empty or `volume_path` does not match the prefix that holds `{table}.csv`.
 
+**`DataType "VARCHAR" requires a length parameter`**  
+Silver staging must use `STRING`, not unbounded `VARCHAR`. Pull this revision, refresh the Git folder, and Start again.
+
 ## What this is not
 
 - Not Auto Loader / `cloudFiles` (bronze is batch `spark.read.csv` of Volume files)

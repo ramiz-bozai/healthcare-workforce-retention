@@ -39,6 +39,7 @@ def to_spark_select(sql: str) -> str:
         s,
     )
     s = _DATE_DIFF.sub(r"datediff(\2, \1)", s)
+    s = re.sub(r"\bVARCHAR\b(?!\s*\()", "STRING", s)
     s = re.sub(r"\bgold\.(\w+)", r"LIVE.gold_\1", s)
     s = re.sub(r"\bsilver\.(\w+)", r"LIVE.silver_\1", s)
     return s.strip()

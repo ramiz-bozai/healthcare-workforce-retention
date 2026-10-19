@@ -1,6 +1,7 @@
-"""Cast bronze VARCHAR into typed silver staging tables.
+"""Cast bronze VARCHAR/STRING into typed silver staging tables.
 
 CAST / TRY_CAST / NULLIF / TRIM are used so the same expressions can move to Spark SQL.
+Spark/Databricks rejects unbounded VARCHAR; STRING is the unbounded text type in both runtimes.
 """
 
 from __future__ import annotations
@@ -54,7 +55,7 @@ LOWER_COLUMNS = {
 
 
 def _expr(table: str, col: str) -> str:
-    raw = f"NULLIF(TRIM(CAST({col} AS VARCHAR)), '')"
+    raw = f"NULLIF(TRIM(CAST({col} AS STRING)), '')"
     if col in DATE_COLUMNS.get(table, ()):
         return f"TRY_CAST({raw} AS DATE) AS {col}"
     if col in DOUBLE_COLUMNS.get(table, ()):
