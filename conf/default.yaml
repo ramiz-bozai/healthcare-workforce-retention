@@ -1,0 +1,93 @@
+# CareStaff Insight — environment-safe configuration. No secrets.
+# Locked FE Bar decisions live here so thresholds are not buried in notebooks.
+
+project:
+  name: CareStaff Insight
+  as_of_date: "2026-09-01"
+  random_seed: 42
+
+unity_catalog:
+  catalog: healthcare_ops
+  bronze_schema: bronze
+  silver_schema: silver
+  gold_schema: gold
+  ml_schema: ml
+  volume: workforce_landing
+
+labels:
+  attrition_horizon_days: 90
+  attrition_positive_class: voluntary
+  shortage_coverage_ratio_threshold: 0.90
+  shortage_open_shift_share_threshold: 0.10
+  shortage_primary_horizon_days: 14
+  shortage_secondary_horizon_days: 28
+
+# Used for exec planning dollars only. Never a model feature.
+# Rates are synthetic assumptions, not customer compensation data.
+cost_assumptions:
+  hours_per_year: 2080
+  replacement_multiplier: 1.0
+  agency_to_staff_hourly_ratio: 2.0
+  salaries_usd:
+    RN: 95000
+    LPN: 58000
+    CNA: 38000
+    RT: 78000
+    ED_TECH: 42000
+  note: "Synthetic role-average planning assumption. Not individual pay. Not measured savings."
+
+actions:
+  require_human_review: true
+  playbook:
+    - schedule_stabilize
+    - manager_outreach
+    - workload_balance
+    - recruit_prioritize
+    - float_ot_review
+  # Assumed feature shifts for what-if only. Never written back to silver/gold features.
+  whatif:
+    swap_keep: 0.5
+    extra_shift_set: 0
+    ot_keep: 0.6
+    coverage_lift: 0.10
+    coverage_cap: 1.05
+    open_shift_keep: 0.5
+    vacancy_keep: 0.7
+    open_fte_keep: 0.5
+    gap_hours_keep: 0.6
+
+# Model policy. Training uses only labels fully realized by as_of.
+# high_risk is a planning list (top quantile), not an employment decision.
+models:
+  family: hist_gradient_boosting
+  attrition_high_risk_quantile: 0.85
+  shortage_flag_min_probability: 0.80
+  permutation_repeats: 12
+
+# Local assistant is template-only. Genie / FM narration is the workspace path
+# after a space is created on gold. Do not flip these to true in this repo.
+ai:
+  mode: template
+  genie_live: false
+  model_serving_live: false
+  max_rows: 12
+
+pipeline:
+  include_dq_fixtures: true
+  duckdb_path: data/generated/carestaff.duckdb
+
+generation:
+  history_start_seed: "2025-09-01"
+  history_start_demo: "2024-09-01"
+  future_horizon_days: 90
+  profiles:
+    seed:
+      n_active_employees: 180
+      n_facilities: 2
+      n_units: 8
+      history_months: 12
+    demo:
+      n_active_employees: 1200
+      n_facilities: 3
+      n_units: 12
+      history_months: 24

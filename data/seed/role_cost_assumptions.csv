@@ -1,0 +1,6 @@
+role_code,avg_annual_salary_usd,hours_per_year,hourly_equivalent_usd,replacement_multiplier,agency_hourly_usd,assumption_note
+RN,95000,2080,45.67,1.0,91.35,Synthetic role-average planning assumption. Not individual pay. Not measured savings.
+LPN,58000,2080,27.88,1.0,55.77,Synthetic role-average planning assumption. Not individual pay. Not measured savings.
+CNA,38000,2080,18.27,1.0,36.54,Synthetic role-average planning assumption. Not individual pay. Not measured savings.
+RT,78000,2080,37.5,1.0,75.0,Synthetic role-average planning assumption. Not individual pay. Not measured savings.
+ED_TECH,42000,2080,20.19,1.0,40.38,Synthetic role-average planning assumption. Not individual pay. Not measured savings.

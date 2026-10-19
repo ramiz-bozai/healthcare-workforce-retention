@@ -1,0 +1,352 @@
+# Silver data-quality rules. SQL is the contract for DuckDB (local) and for
+# a dq_violations query in Databricks. Optional row_predicate is the
+# per-row Lakeflow/DLT expectation; uniqueness and cross-table FK have no
+# row_predicate because they are set-level.
+
+# Tokens replaced at runtime: __AS_OF__  __HISTORY_START__
+
+rules:
+  - id: emp_required_fields
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: Required employee fields must be present
+    sql: |
+      SELECT employee_id AS record_key,
+             'missing required employee field' AS violation_detail
+      FROM silver.stg_employees
+      WHERE employee_id IS NULL OR employee_id = ''
+         OR role_code IS NULL OR role_code = ''
+         OR department_id IS NULL OR department_id = ''
+         OR hire_date IS NULL
+         OR fte IS NULL
+         OR employment_status IS NULL OR employment_status = ''
+    row_predicate: "employee_id IS NOT NULL AND role_code IS NOT NULL AND department_id IS NOT NULL AND hire_date IS NOT NULL AND fte IS NOT NULL AND employment_status IS NOT NULL"
+
+  - id: emp_pk_unique
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: Duplicate employee_id
+    sql: |
+      SELECT employee_id AS record_key,
+             'duplicate employee_id' AS violation_detail
+      FROM silver.stg_employees
+      GROUP BY employee_id
+      HAVING COUNT(*) > 1
+
+  - id: emp_valid_hire_date
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: hire_date must be a real date on or before as_of
+    sql: |
+      SELECT employee_id AS record_key,
+             'hire_date missing or after as_of' AS violation_detail
+      FROM silver.stg_employees
+      WHERE hire_date IS NULL OR hire_date > DATE '__AS_OF__'
+    row_predicate: "hire_date IS NOT NULL AND hire_date <= DATE '__AS_OF__'"
+
+  - id: emp_valid_termination
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: termination_date must be on or after hire_date
+    sql: |
+      SELECT employee_id AS record_key,
+             'termination_date before hire_date' AS violation_detail
+      FROM silver.stg_employees
+      WHERE termination_date IS NOT NULL
+        AND hire_date IS NOT NULL
+        AND termination_date < hire_date
+    row_predicate: "termination_date IS NULL OR hire_date IS NULL OR termination_date >= hire_date"
+
+  - id: emp_status_values
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: employment_status must be active or terminated
+    sql: |
+      SELECT employee_id AS record_key,
+             employment_status AS violation_detail
+      FROM silver.stg_employees
+      WHERE employment_status NOT IN ('active', 'terminated')
+         OR (employment_status = 'terminated' AND termination_date IS NULL)
+         OR (employment_status = 'active' AND termination_date IS NOT NULL)
+    row_predicate: "employment_status IN ('active', 'terminated')"
+
+  - id: emp_fte_bounds
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: FTE must be between 0.6 and 1.0
+    sql: |
+      SELECT employee_id AS record_key,
+             CAST(fte AS VARCHAR) AS violation_detail
+      FROM silver.stg_employees
+      WHERE fte IS NULL OR fte < 0.6 OR fte > 1.0
+    row_predicate: "fte >= 0.6 AND fte <= 1.0"
+
+  - id: emp_fk_department
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: department_id must exist
+    sql: |
+      SELECT e.employee_id AS record_key,
+             e.department_id AS violation_detail
+      FROM silver.stg_employees e
+      LEFT JOIN silver.stg_departments d ON e.department_id = d.department_id
+      WHERE d.department_id IS NULL
+
+  - id: emp_fk_role
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: role_code must exist
+    sql: |
+      SELECT e.employee_id AS record_key,
+             e.role_code AS violation_detail
+      FROM silver.stg_employees e
+      LEFT JOIN silver.stg_roles r ON e.role_code = r.role_code
+      WHERE r.role_code IS NULL
+
+  - id: emp_fk_facility
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: facility_id must exist
+    sql: |
+      SELECT e.employee_id AS record_key,
+             e.facility_id AS violation_detail
+      FROM silver.stg_employees e
+      LEFT JOIN silver.stg_facilities f ON e.facility_id = f.facility_id
+      WHERE f.facility_id IS NULL
+
+  - id: emp_fk_manager
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: manager_employee_id must be null or an existing employee
+    sql: |
+      SELECT e.employee_id AS record_key,
+             e.manager_employee_id AS violation_detail
+      FROM silver.stg_employees e
+      LEFT JOIN silver.stg_employees m ON e.manager_employee_id = m.employee_id
+      WHERE e.manager_employee_id IS NOT NULL
+        AND e.manager_employee_id <> ''
+        AND m.employee_id IS NULL
+
+  - id: emp_missing_shift_assignments
+    table: employees
+    severity: error
+    record_key: employee_id
+    description: Active employees must have at least one shift assignment
+    sql: |
+      SELECT e.employee_id AS record_key,
+             'active employee has no schedule_assignments' AS violation_detail
+      FROM silver.stg_employees e
+      LEFT JOIN silver.stg_schedule_assignments s ON e.employee_id = s.employee_id
+      WHERE e.employment_status = 'active'
+        AND s.assignment_id IS NULL
+
+  - id: sch_pk_unique
+    table: schedule_assignments
+    severity: error
+    record_key: assignment_id
+    description: Duplicate assignment_id
+    sql: |
+      SELECT assignment_id AS record_key,
+             'duplicate assignment_id' AS violation_detail
+      FROM silver.stg_schedule_assignments
+      GROUP BY assignment_id
+      HAVING COUNT(*) > 1
+
+  - id: sch_emp_date_unique
+    table: schedule_assignments
+    severity: error
+    record_key: assignment_id
+    description: Duplicate employee + shift_date + shift_code
+    sql: |
+      SELECT MIN(assignment_id) AS record_key,
+             employee_id || '|' || CAST(shift_date AS VARCHAR) AS violation_detail
+      FROM silver.stg_schedule_assignments
+      GROUP BY employee_id, shift_date, shift_code
+      HAVING COUNT(*) > 1
+
+  - id: sch_fk_employee
+    table: schedule_assignments
+    severity: error
+    record_key: assignment_id
+    description: schedule employee_id must exist
+    sql: |
+      SELECT s.assignment_id AS record_key,
+             s.employee_id AS violation_detail
+      FROM silver.stg_schedule_assignments s
+      LEFT JOIN silver.stg_employees e ON s.employee_id = e.employee_id
+      WHERE e.employee_id IS NULL
+
+  - id: sch_valid_date
+    table: schedule_assignments
+    severity: error
+    record_key: assignment_id
+    description: shift_date must fall in the history window through as_of
+    sql: |
+      SELECT assignment_id AS record_key,
+             CAST(shift_date AS VARCHAR) AS violation_detail
+      FROM silver.stg_schedule_assignments
+      WHERE shift_date IS NULL
+         OR shift_date < DATE '__HISTORY_START__'
+         OR shift_date > DATE '__AS_OF__'
+    row_predicate: "shift_date IS NOT NULL AND shift_date >= DATE '__HISTORY_START__' AND shift_date <= DATE '__AS_OF__'"
+
+  - id: sch_hours_match_shift
+    table: schedule_assignments
+    severity: error
+    record_key: assignment_id
+    description: scheduled_hours must match the shift catalog
+    sql: |
+      SELECT a.assignment_id AS record_key,
+             CAST(a.scheduled_hours AS VARCHAR) AS violation_detail
+      FROM silver.stg_schedule_assignments a
+      LEFT JOIN silver.stg_shifts s ON a.shift_code = s.shift_code
+      WHERE s.shift_code IS NULL
+         OR a.scheduled_hours <> s.scheduled_hours
+
+  - id: staff_heads_bounds
+    table: staffing_requirements
+    severity: error
+    record_key: department_id
+    description: required_heads must be between 1 and 40
+    sql: |
+      SELECT department_id || '|' || CAST(requirement_date AS VARCHAR) || '|' || shift_code AS record_key,
+             CAST(required_heads AS VARCHAR) AS violation_detail
+      FROM silver.stg_staffing_requirements
+      WHERE required_heads IS NULL OR required_heads < 1 OR required_heads > 40
+    row_predicate: "required_heads >= 1 AND required_heads <= 40"
+
+  - id: staff_hours_match
+    table: staffing_requirements
+    severity: error
+    record_key: department_id
+    description: required_hours must equal required_heads times shift length
+    sql: |
+      SELECT r.department_id || '|' || CAST(r.requirement_date AS VARCHAR) || '|' || r.shift_code AS record_key,
+             CAST(r.required_hours AS VARCHAR) AS violation_detail
+      FROM silver.stg_staffing_requirements r
+      LEFT JOIN silver.stg_shifts s ON r.shift_code = s.shift_code
+      WHERE s.shift_code IS NULL
+         OR r.required_hours IS NULL
+         OR r.required_hours <> (r.required_heads * s.scheduled_hours)
+
+  - id: staff_valid_date
+    table: staffing_requirements
+    severity: error
+    record_key: department_id
+    description: requirement_date must fall in the history window through as_of
+    sql: |
+      SELECT department_id || '|' || CAST(requirement_date AS VARCHAR) || '|' || shift_code AS record_key,
+             CAST(requirement_date AS VARCHAR) AS violation_detail
+      FROM silver.stg_staffing_requirements
+      WHERE requirement_date IS NULL
+         OR requirement_date < DATE '__HISTORY_START__'
+         OR requirement_date > DATE '__AS_OF__'
+    row_predicate: "requirement_date IS NOT NULL AND requirement_date >= DATE '__HISTORY_START__' AND requirement_date <= DATE '__AS_OF__'"
+
+  - id: staff_fk_department
+    table: staffing_requirements
+    severity: error
+    record_key: department_id
+    description: staffing department_id must exist
+    sql: |
+      SELECT r.department_id || '|' || CAST(r.requirement_date AS VARCHAR) || '|' || r.shift_code AS record_key,
+             r.department_id AS violation_detail
+      FROM silver.stg_staffing_requirements r
+      LEFT JOIN silver.stg_departments d ON r.department_id = d.department_id
+      WHERE d.department_id IS NULL
+
+  - id: tc_hours_bounds
+    table: time_cards
+    severity: error
+    record_key: time_card_id
+    description: hours_worked must be between 0 and 24
+    sql: |
+      SELECT time_card_id AS record_key,
+             CAST(hours_worked AS VARCHAR) AS violation_detail
+      FROM silver.stg_time_cards
+      WHERE hours_worked IS NULL OR hours_worked < 0 OR hours_worked > 24
+    row_predicate: "hours_worked >= 0 AND hours_worked <= 24"
+
+  - id: tc_overtime_consistent
+    table: time_cards
+    severity: error
+    record_key: time_card_id
+    description: overtime_hours cannot exceed hours_worked
+    sql: |
+      SELECT time_card_id AS record_key,
+             CAST(overtime_hours AS VARCHAR) AS violation_detail
+      FROM silver.stg_time_cards
+      WHERE overtime_hours IS NULL
+         OR overtime_hours < 0
+         OR (hours_worked IS NOT NULL AND overtime_hours > hours_worked)
+    row_predicate: "overtime_hours >= 0 AND overtime_hours <= hours_worked"
+
+  - id: tc_fk_employee
+    table: time_cards
+    severity: error
+    record_key: time_card_id
+    description: time_card employee_id must exist
+    sql: |
+      SELECT t.time_card_id AS record_key,
+             t.employee_id AS violation_detail
+      FROM silver.stg_time_cards t
+      LEFT JOIN silver.stg_employees e ON t.employee_id = e.employee_id
+      WHERE e.employee_id IS NULL
+
+  - id: abs_type_values
+    table: absences
+    severity: error
+    record_key: absence_id
+    description: absence_type must be unplanned_callout or pto
+    sql: |
+      SELECT absence_id AS record_key,
+             absence_type AS violation_detail
+      FROM silver.stg_absences
+      WHERE absence_type NOT IN ('unplanned_callout', 'pto')
+    row_predicate: "absence_type IN ('unplanned_callout', 'pto')"
+
+  - id: abs_fk_employee
+    table: absences
+    severity: error
+    record_key: absence_id
+    description: absence employee_id must exist
+    sql: |
+      SELECT a.absence_id AS record_key,
+             a.employee_id AS violation_detail
+      FROM silver.stg_absences a
+      LEFT JOIN silver.stg_employees e ON a.employee_id = e.employee_id
+      WHERE e.employee_id IS NULL
+
+  - id: attr_type_values
+    table: attrition_events
+    severity: error
+    record_key: employee_id
+    description: separation_type must be voluntary or involuntary
+    sql: |
+      SELECT employee_id || '|' || CAST(separation_date AS VARCHAR) AS record_key,
+             separation_type AS violation_detail
+      FROM silver.stg_attrition_events
+      WHERE separation_type NOT IN ('voluntary', 'involuntary')
+    row_predicate: "separation_type IN ('voluntary', 'involuntary')"
+
+  - id: attr_fk_employee
+    table: attrition_events
+    severity: error
+    record_key: employee_id
+    description: attrition employee_id must exist
+    sql: |
+      SELECT a.employee_id || '|' || CAST(a.separation_date AS VARCHAR) AS record_key,
+             a.employee_id AS violation_detail
+      FROM silver.stg_attrition_events a
+      LEFT JOIN silver.stg_employees e ON a.employee_id = e.employee_id
+      WHERE e.employee_id IS NULL

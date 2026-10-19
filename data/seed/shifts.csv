@@ -1,0 +1,4 @@
+shift_code,shift_name,scheduled_hours
+DAYS,Days (07-19),12
+EVENINGS,Evenings (15-23),8
+NIGHTS,Nights (19-07),12
