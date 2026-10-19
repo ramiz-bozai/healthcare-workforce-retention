@@ -93,27 +93,37 @@ class WarehouseConnection:
         self._conn.close()
 
 
+def warehouse_id() -> str | None:
+    return os.environ.get("DATABRICKS_WAREHOUSE_ID") or os.environ.get("DATABRICKS_SQL_WAREHOUSE_ID") or None
+
+
 def warehouse_configured() -> bool:
     return bool(
-        os.environ.get("DATABRICKS_WAREHOUSE_ID")
-        and os.environ.get("CARESTTAFF_CATALOG")
-        and os.environ.get("CARESTTAFF_SCHEMA")
+        warehouse_id()
+        and os.environ.get("CARESTAFF_CATALOG")
+        and os.environ.get("CARESTAFF_SCHEMA")
     )
 
 
 def open_gold(*, duckdb_path: Path | None = None):
     if warehouse_configured():
         return WarehouseConnection(
-            os.environ["DATABRICKS_WAREHOUSE_ID"],
-            os.environ["CARESTTAFF_CATALOG"],
-            os.environ["CARESTTAFF_SCHEMA"],
+            warehouse_id(),
+            os.environ["CARESTAFF_CATALOG"],
+            os.environ["CARESTAFF_SCHEMA"],
+        )
+    if os.environ.get("DATABRICKS_APP_NAME") or os.environ.get("DATABRICKS_APP_PORT"):
+        raise FileNotFoundError(
+            "This Databricks App has no SQL warehouse ID. "
+            "Add a SQL warehouse resource with key sql-warehouse (Can use), "
+            "grant the app SP SELECT on healthcare_ops.carestaff_insight, then redeploy."
         )
     import duckdb
 
-    db = Path(os.environ.get("CARESTTAFF_DUCKDB", duckdb_path or DEFAULT_DUCKDB))
+    db = Path(os.environ.get("CARESTAFF_DUCKDB", duckdb_path or DEFAULT_DUCKDB))
     if not db.exists():
         raise FileNotFoundError(
             f"{db} missing. Run `uv run python -m src.pipeline` then `uv run python -m src.ml`, "
-            "or set DATABRICKS_WAREHOUSE_ID, CARESTTAFF_CATALOG, and CARESTTAFF_SCHEMA."
+            "or set DATABRICKS_WAREHOUSE_ID, CARESTAFF_CATALOG, and CARESTAFF_SCHEMA."
         )
     return duckdb.connect(str(db), read_only=True)

@@ -2,9 +2,11 @@ command:
   - python
   - app.py
 env:
-  - name: CARESTTAFF_CATALOG
+  - name: CARESTAFF_CATALOG
     value: healthcare_ops
-  - name: CARESTTAFF_SCHEMA
+  - name: CARESTAFF_SCHEMA
     value: carestaff_insight
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
   - name: GENIE_SPACE_ID
     valueFrom: genie-space

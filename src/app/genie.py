@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from datetime import timedelta
 
-GENIE_ENV_KEYS = ("GENIE_SPACE_ID", "DATABRICKS_GENIE_SPACE_ID", "CARESTTAFF_GENIE_SPACE_ID")
+GENIE_ENV_KEYS = ("GENIE_SPACE_ID", "DATABRICKS_GENIE_SPACE_ID", "CARESTAFF_GENIE_SPACE_ID")
 
 
 def space_id() -> str | None:

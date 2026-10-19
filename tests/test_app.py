@@ -83,8 +83,8 @@ def test_apply_control_is_disabled_in_source():
 
 def test_app_overview_and_actions(app_db, monkeypatch):
     db, models, _ = app_db
-    monkeypatch.setenv("CARESTTAFF_DUCKDB", str(db))
-    monkeypatch.setenv("CARESTTAFF_MODEL_DIR", str(models))
+    monkeypatch.setenv("CARESTAFF_DUCKDB", str(db))
+    monkeypatch.setenv("CARESTAFF_MODEL_DIR", str(models))
     monkeypatch.delenv("DATABRICKS_WAREHOUSE_ID", raising=False)
 
     from fastapi.testclient import TestClient

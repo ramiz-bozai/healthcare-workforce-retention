@@ -40,11 +40,11 @@ OVERVIEW_FIELDS = (
 
 
 def duckdb_path() -> Path:
-    return Path(os.environ.get("CARESTTAFF_DUCKDB", DEFAULT_DUCKDB))
+    return Path(os.environ.get("CARESTAFF_DUCKDB", DEFAULT_DUCKDB))
 
 
 def model_dir() -> Path:
-    return Path(os.environ.get("CARESTTAFF_MODEL_DIR", MODEL_DIR))
+    return Path(os.environ.get("CARESTAFF_MODEL_DIR", MODEL_DIR))
 
 
 def connect(path: Path | None = None):
