@@ -39,6 +39,26 @@ Read **$** as planning math: high-risk headcount × role-average salary × repla
 
 ---
 
+## Databricks assets (what was built)
+
+Catalog / schema: `healthcare_ops.carestaff_insight`. You create these in the workspace from the Git folder; this repo does not auto-deploy them. How to click: [workspace.md](workspace.md).
+
+| Asset | What it is |
+|---|---|
+| Git folder | This repo, branch you pushed (`app-react` for the App UI) |
+| Volume | `/Volumes/healthcare_ops/bronze/workforce_landing` — seed CSVs for bronze |
+| Lakeflow pipeline | `pipelines/carestaff_insight` → `bronze_*`, `silver_*`, ops `gold_*` (`gold_executive_kpis`, coverage, features) |
+| Notebook 07 | Writes score/action gold: `gold_exec_brief`, `gold_employee_risk_scores`, `gold_unit_shortage_forecast`, `gold_recommended_actions`, `gold_whatif_scenarios`, `gold_action_summary`, model metrics |
+| Optional Volume | `carestaff_models` — sklearn objects for in-process `predict` (not Model Serving) |
+| Notebook 08 | Metric views: `carestaff_unit_coverage`, `carestaff_as_of_roster`, `carestaff_attrition_risk`, `carestaff_unit_shortage` |
+| SQL warehouse | App resource, key `sql-warehouse` → `DATABRICKS_WAREHOUSE_ID`. App SP: **Can use** |
+| Databricks App | FastAPI + React (`app.py`). Reads UC gold. App SP: `USE CATALOG` / `USE SCHEMA` / `SELECT` on the schema |
+| Genie space | Metric views + `gold_exec_brief` / `gold_recommended_actions`. Attached to the App as Genie Agent, key `genie-space`, **Can run** |
+
+**Not built:** Model Serving endpoint. Scoring is notebook + in-process `predict`.
+
+---
+
 ## Timed talk track
 
 ### 0:00–1:00 — Frame (do not open the app yet)

@@ -55,6 +55,42 @@ function formatCell(value: unknown): string {
   return String(value);
 }
 
+const MD_CHUNK = /(\*\*[^*]+?\*\*|__[^_]+?__|`[^`]+?`|\*[^*]+?\*)/g;
+
+function mdInline(text: string) {
+  const parts = text.split(MD_CHUNK);
+  return parts.map((part, i) => {
+    if ((part.startsWith("**") && part.endsWith("**") && part.length > 4) || (part.startsWith("__") && part.endsWith("__") && part.length > 4)) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      return <code key={i}>{part.slice(1, -1)}</code>;
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
+
+function MdText({ text }: { text: string }) {
+  const blocks = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
+  return (
+    <div className="a">
+      {blocks.map((block, i) => (
+        <p key={i}>
+          {block.split("\n").map((line, j) => (
+            <span key={j}>
+              {j > 0 ? <br /> : null}
+              {mdInline(line)}
+            </span>
+          ))}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function cardBy(cards: Card[], column: string): Card | undefined {
   return cards.find((c) => c.column === column);
 }
@@ -453,7 +489,7 @@ function AskPage() {
               </div>
             ) : (
               <div key={i}>
-                <p className="a">{m.text}</p>
+                <MdText text={m.text} />
                 {m.turn?.sql?.map((s, j) => (
                   <pre className="sql" key={j}>
                     {s.sql}
