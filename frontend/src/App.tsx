@@ -555,7 +555,7 @@ export default function App() {
       <header className="top">
         <div className="brand">
           <i />
-          CARESTTAFF INSIGHT
+          CARESTAFF INSIGHT
         </div>
         <div className="leds">
           <span className="led">

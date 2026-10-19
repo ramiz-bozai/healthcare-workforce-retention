@@ -145,12 +145,12 @@ Put these on the Genie space and AI/BI, not a dump of every `gold_*` table.
 
 ### Stop 3 — Databricks App (after scores exist)
 
-Do not create the App until `gold_exec_brief` exists. Locally the FastAPI app reads DuckDB. In the workspace it reads Unity Catalog when a SQL warehouse is attached (`DATABRICKS_WAREHOUSE_ID` plus `CARESTTAFF_CATALOG` / `CARESTTAFF_SCHEMA` from `app.yaml`).
+Do not create the App until `gold_exec_brief` exists. Locally the FastAPI app reads DuckDB. In the workspace it reads Unity Catalog when a SQL warehouse is attached (`DATABRICKS_WAREHOUSE_ID` plus `CARESTAFF_CATALOG` / `CARESTAFF_SCHEMA` from `app.yaml`).
 
 1. New **App** → source = Git folder **root** (not `pipelines/carestaff_insight`). `app.yaml` already runs `python app.py`.
 2. Add a **SQL warehouse** resource in the App UI. That injects `DATABRICKS_WAREHOUSE_ID`.
 3. Grant the app service principal `SELECT` on the gold tables (and `USE CATALOG` / `USE SCHEMA`) and `CAN USE` on the warehouse.
-4. Optional: set `CARESTTAFF_MODEL_DIR` to the model Volume from notebook 07 if you want the Attrition page in-process `predict`. Gold scores still show without it.
+4. Optional: set `CARESTAFF_MODEL_DIR` to the model Volume from notebook 07 if you want the Attrition page in-process `predict`. Gold scores still show without it.
 5. Commit `frontend/dist` so the workspace does not need npm.
 
 Local talk-track app:

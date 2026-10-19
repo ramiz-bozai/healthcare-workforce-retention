@@ -30,10 +30,11 @@ def test_rewrite_rejects_bad_identifiers():
 
 def test_warehouse_configured_requires_all_three(monkeypatch):
     monkeypatch.delenv("DATABRICKS_WAREHOUSE_ID", raising=False)
-    monkeypatch.delenv("CARESTTAFF_CATALOG", raising=False)
-    monkeypatch.delenv("CARESTTAFF_SCHEMA", raising=False)
+    monkeypatch.delenv("DATABRICKS_SQL_WAREHOUSE_ID", raising=False)
+    monkeypatch.delenv("CARESTAFF_CATALOG", raising=False)
+    monkeypatch.delenv("CARESTAFF_SCHEMA", raising=False)
     assert warehouse_configured() is False
     monkeypatch.setenv("DATABRICKS_WAREHOUSE_ID", "abc")
-    monkeypatch.setenv("CARESTTAFF_CATALOG", "healthcare_ops")
-    monkeypatch.setenv("CARESTTAFF_SCHEMA", "carestaff_insight")
+    monkeypatch.setenv("CARESTAFF_CATALOG", "healthcare_ops")
+    monkeypatch.setenv("CARESTAFF_SCHEMA", "carestaff_insight")
     assert warehouse_configured() is True
