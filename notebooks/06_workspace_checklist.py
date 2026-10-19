@@ -35,10 +35,18 @@ def main() -> None:
     if missing:
         raise SystemExit(f"Missing seed files: {missing}")
     print()
-    print("=== Recipe files ===")
+    print("=== Recipe files (self-contained; no src / data_generation imports) ===")
     for name in ("bronze.py", "silver.py", "gold.py"):
         path = recipe / name
-        print(f"  {'ok' if path.exists() else 'MISSING':7} {name}")
+        text = path.read_text() if path.exists() else ""
+        banned = any(
+            token in text
+            for token in ("from src", "from data_generation", "import data_generation", "import yaml", "import _bootstrap")
+        )
+        status = "ok" if path.exists() and not banned else "MISSING" if not path.exists() else "IMPORTS"
+        print(f"  {status:7} {name}")
+        if banned:
+            raise SystemExit(f"{name} still imports a repo package; Lakeflow will MODULE_NOT_FOUND")
     print()
     print("=== Gold tables the Lakeflow gold.py will register ===")
     for name, _ in STATEMENTS:

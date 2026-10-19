@@ -24,7 +24,7 @@ In the workspace:
 2. Check out the branch you pushed (this work was done on `initial-build`).
 3. Confirm you can open `pipelines/carestaff_insight/bronze.py` and `conf/default.yaml` from the folder.
 
-You will import `src.*` and `data_generation.*` from the **repository root**. Each pipeline file puts that root on `sys.path` itself. Lakeflow runs every file as an **isolated notebook**, so a sibling `import _bootstrap` fails with `PYTHON.MODULE_NOT_FOUND_ERROR`. You do not need a wheel.
+The Lakeflow files under `pipelines/carestaff_insight/` are **self-contained**. They do not import `src`, `data_generation`, PyYAML, or a sibling helper. Lakeflow runs every file as an **isolated notebook** (often with `__file__` outside the Git folder, and `/Workspace` not FUSE-mounted), so those imports raise `PYTHON.MODULE_NOT_FOUND_ERROR`. You do not need a wheel. You do **not** need `repo_root`.
 
 ## 2. Unity Catalog objects (you create)
 
@@ -68,18 +68,16 @@ You can upload in the Catalog Explorer UI. This repo does not copy files for you
 4. Pipeline configuration (key / value):
    - `volume_path` = `/Volumes/<catalog>/bronze/workforce_landing`  
      Default in code if you omit it: `/Volumes/healthcare_ops/bronze/workforce_landing`
-   - `repo_root` = the Git folder path, e.g. `/Workspace/Users/<you>/healthcare-workforce-retention`  
-     Required if `__file__` is a temp isolated-notebook path and `src/` cannot be discovered by walking parents.
 5. Development mode is fine for the demo. Serverless or a small classic cluster, your choice.
 6. **You** click **Start**. Wait until gold tables succeed.
 
 What you should see in the target schema (prefix + name):
 
 - Bronze: `bronze_facilities` … `bronze_attrition_events` (VARCHAR payload + `_ingest_ts`, `_source_path`, `_record_origin`)
-- Silver: `silver_*` with per-row `expect_or_drop` from `conf/dq_rules.yaml` `row_predicate`
+- Silver: `silver_*` with per-row `expect_or_drop` using the same rule IDs as `conf/dq_rules.yaml` `row_predicate`
 - Gold: `gold_snapshot_calendar`, `gold_role_cost_assumptions`, `gold_metric_catalog`, `gold_unit_day_coverage`, `gold_unit_week_features`, `gold_employee_month_features`, `gold_executive_kpis`
 
-Gold SQL is `src/gold/sql.py` rewritten for Spark (`generate_series` → `sequence`, `date_diff` → `datediff`, `gold.x` / `silver.x` → `LIVE.gold_x` / `LIVE.silver_x`). Same tokens as local DuckDB: as_of `2026-09-01`, coverage `0.90`, open-shift `0.10`, 90-day attrition, 14/28-day shortage.
+Gold SQL is the Spark rewrite of `src/gold/sql.py` (`generate_series` → `sequence`, `date_diff` → `datediff`, `gold.x` / `silver.x` → `LIVE.gold_x` / `LIVE.silver_x`), inlined in `gold.py`. Same tokens as local DuckDB: as_of `2026-09-01`, coverage `0.90`, open-shift `0.10`, 90-day attrition, 14/28-day shortage.
 
 ### Set-level DQ (not per-row expects)
 
@@ -105,11 +103,9 @@ Uniqueness and foreign keys in `conf/dq_rules.yaml` have **no** `row_predicate`.
 ## Troubleshooting
 
 **`PYTHON.MODULE_NOT_FOUND_ERROR` on bronze.py / silver.py / gold.py**  
-Lakeflow isolated the notebook, so `import _bootstrap` (or `import src`) could not see the Git folder. Pull this revision, then in pipeline settings add:
+Lakeflow isolated the notebook. Older copies imported `src`, `data_generation`, a sibling `_bootstrap`, or walked `/Workspace` with `Path.is_dir()`. Pull this revision so those three files are self-contained, **refresh the Git folder**, and Start again. You do not need `repo_root`. You do not need a PyYAML cluster library.
 
-- `repo_root` = `/Workspace/Users/<you>/healthcare-workforce-retention`
-
-Re-run. The next import that can fail is `yaml` (PyYAML) on a cluster that does not ship it — add `pyyaml` as a pipeline environment / PyPI dependency if that happens.
+If the error names a missing CSV, the Volume is empty or `volume_path` does not match the prefix that holds `{table}.csv`.
 
 ## What this is not
 
