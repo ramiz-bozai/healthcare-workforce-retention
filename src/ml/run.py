@@ -59,12 +59,15 @@ def default_tracking_uri() -> str:
     return f"sqlite:///{MLFLOW_DB.resolve()}"
 
 
-def _log_mlflow(attrition: FittedModel, shortage: FittedModel, tracking_uri: str, as_of: str) -> str:
+def _log_mlflow(attrition: FittedModel, shortage: FittedModel, tracking_uri: str, as_of: str) -> str | None:
     import os
 
     os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
-    import mlflow
-    import mlflow.sklearn
+    try:
+        import mlflow
+        import mlflow.sklearn
+    except ImportError:
+        return None
 
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment("carestaff-insight")
