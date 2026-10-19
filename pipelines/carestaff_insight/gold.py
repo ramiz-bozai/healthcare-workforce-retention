@@ -6,7 +6,54 @@ as_of, coverage 0.90, open-shift 0.10, 90-day attrition, 14/28-day shortage.
 
 from __future__ import annotations
 
-import _bootstrap  # noqa: F401  — repo root on sys.path
+import sys
+from pathlib import Path
+
+
+def _ensure_repo_on_path() -> None:
+    """Lakeflow isolates each notebook. Sibling `import _bootstrap` will not work."""
+    conf_root = ""
+    try:
+        conf_root = str(spark.conf.get("repo_root", "") or "")  # noqa: F821
+    except Exception:
+        conf_root = ""
+    try:
+        file_path = Path(__file__).resolve()
+    except NameError:
+        file_path = None
+    seen: set[Path] = set()
+    ordered: list[Path] = []
+
+    def _add(raw: object) -> None:
+        if not raw:
+            return
+        path = Path(str(raw))
+        try:
+            path = path.expanduser().resolve()
+        except OSError:
+            pass
+        for item in (path, *path.parents):
+            if item not in seen:
+                seen.add(item)
+                ordered.append(item)
+
+    _add(conf_root)
+    _add(file_path)
+    _add(Path.cwd())
+    for item in ordered:
+        if (item / "src").is_dir() and (item / "data_generation").is_dir():
+            text = str(item)
+            if text not in sys.path:
+                sys.path.insert(0, text)
+            return
+    raise ModuleNotFoundError(
+        "Could not find repo root (src/ and data_generation/). "
+        "Set pipeline configuration repo_root to the Git folder path, "
+        "for example /Workspace/Users/<you>/healthcare-workforce-retention"
+    )
+
+
+_ensure_repo_on_path()
 
 try:
     import dlt

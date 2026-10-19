@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from data_generation.schema import TABLE_ORDER
+from src.pipeline.workspace_path import ensure_repo_on_path, find_repo_root
 from src.common.paths import SEED_DIR
 from src.gold.sql import STATEMENTS
 from src.silver.rules import load_rules
@@ -10,6 +11,14 @@ from src.silver.rules import load_rules
 ROOT = Path(__file__).resolve().parents[1]
 RECIPE = ROOT / "pipelines" / "carestaff_insight"
 WORKSPACE_DOC = ROOT / "docs" / "workspace.md"
+
+
+def test_find_repo_root_from_nested_file_and_conf():
+    nested = RECIPE / "gold.py"
+    assert find_repo_root(file_path=nested) == ROOT
+    assert ensure_repo_on_path(file_path=nested) == ROOT
+    missing = Path("/tmp/does-not-exist-carestaff")
+    assert find_repo_root(file_path=missing, conf_root=str(ROOT)) == ROOT
 
 
 def test_seed_csv_names_match_bronze_volume_layout():
@@ -20,12 +29,15 @@ def test_seed_csv_names_match_bronze_volume_layout():
         assert (SEED_DIR / f"{table}.csv").exists(), table
 
 
-def test_pipeline_files_bootstrap_repo_root():
-    boot = (RECIPE / "_bootstrap.py").read_text()
-    assert "parents[2]" in boot
-    for name in ("bronze.py", "silver.py", "gold.py"):
-        text = (RECIPE / name).read_text()
-        assert "import _bootstrap" in text
+def test_pipeline_files_do_not_import_sibling_bootstrap():
+    py_files = list(RECIPE.glob("*.py"))
+    assert {p.name for p in py_files} == {"bronze.py", "silver.py", "gold.py"}
+    for path in py_files:
+        text = path.read_text()
+        assert "\nimport _bootstrap" not in text
+        assert "def _ensure_repo_on_path" in text
+        assert 'spark.conf.get("repo_root"' in text
+        assert "data_generation" in text
 
 
 def test_gold_recipe_registers_the_same_grains_as_local_sql():

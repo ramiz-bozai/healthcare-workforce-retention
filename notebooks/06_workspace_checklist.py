@@ -36,7 +36,7 @@ def main() -> None:
         raise SystemExit(f"Missing seed files: {missing}")
     print()
     print("=== Recipe files ===")
-    for name in ("_bootstrap.py", "bronze.py", "silver.py", "gold.py"):
+    for name in ("bronze.py", "silver.py", "gold.py"):
         path = recipe / name
         print(f"  {'ok' if path.exists() else 'MISSING':7} {name}")
     print()
