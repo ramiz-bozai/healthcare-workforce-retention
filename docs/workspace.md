@@ -108,9 +108,9 @@ Lakeflow gold is **not** the whole FE Bar. Streamlit, Ask, risk lists, and what-
 
 It writes (overwrite) into that schema, prefixed like Lakeflow:
 
-`gold_employee_risk_scores`, `gold_unit_shortage_forecast`, `gold_exec_brief`, `gold_recommended_actions`, `gold_whatif_scenarios`, `gold_action_summary`, `gold_model_metrics`, `gold_model_fairness_slices`, `gold_model_calibration_bins`, `gold_model_feature_importances`, and a merged `gold_metric_catalog`.
+`gold_employee_risk_scores`, `gold_unit_shortage_forecast`, `gold_exec_brief`, `gold_recommended_actions`, `gold_whatif_scenarios`, `gold_action_summary`, `gold_model_metrics`, `gold_model_fairness_slices`, `gold_model_calibration_bins`, `gold_model_feature_importances`, and `gold_metric_catalog_scored` (ops + model formulas).
 
-It does **not** overwrite Lakeflow feature tables (`gold_employee_month_features`, `gold_unit_*`, `gold_executive_kpis`, …). If you **Run pipeline** again later, re-run this notebook so `gold_metric_catalog` model rows come back.
+It does **not** overwrite Lakeflow tables (`gold_metric_catalog`, `gold_employee_month_features`, `gold_unit_*`, `gold_executive_kpis`, …). Those are pipeline objects, not unmanaged Delta.
 
 Sanity after the notebook:
 
@@ -123,6 +123,25 @@ SELECT uniform_status, applied_count FROM <catalog>.<schema>.gold_action_summary
 ```
 
 Expect one exec row, `as_of_date = 2026-09-01`, `applied_count = 0`, status `pending_human_review`.
+
+### Metric views (Databricks-only)
+
+Open `notebooks/08_metric_views.py` from the Git folder. Same `catalog` / `schema` widgets. Run all.
+
+Creates:
+
+- `carestaff_unit_coverage` / `carestaff_as_of_roster` — pipeline gold
+- `carestaff_attrition_risk` / `carestaff_unit_shortage` — after notebook 07; skipped if those tables are missing
+
+Query with `MEASURE(...)`, for example:
+
+```sql
+SELECT department_id, MEASURE(coverage_ratio), MEASURE(shortage_day_count)
+FROM <catalog>.<schema>.carestaff_unit_coverage
+GROUP BY department_id
+```
+
+Put these on the Genie space and AI/BI, not a dump of every `gold_*` table.
 
 ### Stop 3 — Databricks App (after scores exist)
 
@@ -137,7 +156,7 @@ uv run streamlit run app.py
 
 ### Stop 4 — Genie (you create the space)
 
-New Genie space → add `gold_exec_brief`, `gold_employee_risk_scores`, `gold_unit_shortage_forecast`, `gold_recommended_actions`, `gold_metric_catalog`, `gold_executive_kpis`. Same questions as `src/ai/tools.py`. Do not flip `ai.genie_live` until the space exists. The App Ask page stays template-mode until then.
+New Genie space → add the `carestaff_*` metric views, plus `gold_exec_brief` / `gold_recommended_actions` after notebook 07. Same questions as `src/ai/tools.py`. Do not flip `ai.genie_live` until the space exists. The App Ask page stays template-mode until then.
 
 ## 6. Sanity checks after *you* start the pipeline
 
