@@ -112,6 +112,8 @@ def test_silver_recipe_matches_local_staging_and_row_expects():
         payload = local.split("SELECT", 1)[1].split("FROM", 1)[0]
         assert f"FROM LIVE.bronze_{table}" in staging[table]
         assert "CREATE OR REPLACE" not in staging[table].upper()
+        assert "VARCHAR" not in staging[table].upper()
+        assert "AS STRING" in staging[table]
         assert spark_row_expectations(table, rules) == expects.get(table, {})
         for col_sql in payload.strip().split(","):
             token = col_sql.strip()
