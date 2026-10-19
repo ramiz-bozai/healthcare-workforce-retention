@@ -13,7 +13,7 @@ CareStaff Insight is a planning workbench for health-system workforce risk. One 
 | ML | sklearn/LightGBM + local MLflow | Workspace MLflow, same pyfunc |
 | Serving | In-process `predict()` | Optional Model Serving |
 | AI | Allowlisted SQL tools + citation validator; template fallback | Genie on gold + FM API narrating tool results only |
-| UX | Streamlit | Same app as a Databricks App + walkthrough notebook |
+| UX | FastAPI + React (`app.py`, `frontend/`) | Same app as a Databricks App + walkthrough notebook |
 
 Do not claim Model Serving or Genie is live unless it has been deployed.
 
@@ -38,7 +38,7 @@ flowchart LR
     SQL[Allowlisted SQL / Genie]
   end
   subgraph ux [Experience]
-    APP[Streamlit workbench]
+    APP[React workbench]
     ACT[Playbook actions pending human review]
   end
   HRIS --> B
@@ -57,7 +57,7 @@ flowchart LR
 
 ## Current increment
 
-Increments 1–9 are complete: generator through Streamlit, Git-folder Lakeflow recipe, FE Bar pack ([fe_bar.md](fe_bar.md)). Operator steps: [workspace.md](workspace.md). **Not auto-deployed.** The pipeline has not been executed. Model Serving is not live. Genie is not live. The Streamlit app is not a Databricks App until you create one. Actions are never auto-applied.
+Increments 1–9 are complete: generator through the React workbench, Git-folder Lakeflow recipe, FE Bar pack ([fe_bar.md](fe_bar.md)). Operator steps: [workspace.md](workspace.md). **Not auto-deployed.** The pipeline has not been executed. Model Serving is not live. Genie is not live. `app.py` is not a Databricks App until you create one. Actions are never auto-applied.
 
 Training is production-honest: only labels whose window ends on or before as_of. Metrics on the as_of roster use generator future labels and are labeled `inference_demo_oracle`. Fairness slices are operational (role, facility, tenure, shift, unit) — the data has no protected class.
 

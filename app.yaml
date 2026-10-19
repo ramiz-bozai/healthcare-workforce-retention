@@ -1,0 +1,10 @@
+command:
+  - python
+  - app.py
+env:
+  - name: CARESTTAFF_CATALOG
+    value: healthcare_ops
+  - name: CARESTTAFF_SCHEMA
+    value: carestaff_insight
+  - name: GENIE_SPACE_ID
+    valueFrom: genie-space

@@ -21,6 +21,12 @@ mlartifacts/
 data/generated/*
 !data/generated/.gitkeep
 
+node_modules/
+npm-debug.log*
+
+# Keep frontend/dist committed so a Git-folder Databricks App can serve the SPA
+# without npm in the workspace.
+
 # Local secrets — never commit
 .env
 .env.*

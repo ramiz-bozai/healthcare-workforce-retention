@@ -6,7 +6,7 @@ Refresh live numbers (do not memorize stale dollars):
 
 ```bash
 uv run python notebooks/00_fe_bar.py
-uv run streamlit run app.py
+uv run python app.py
 ```
 
 If gold is missing: `uv run python -m src.pipeline --profile seed` then `uv run python -m src.ml --profile seed`.
@@ -60,9 +60,9 @@ Show, in this order (files, not slides):
 
 Line: “Bronze lands as strings. Silver types and quarantines with the same rule IDs locally and in Lakeflow. Gold is the only layer the assistant may cite.”
 
-### 3:00–6:00 — Streamlit Overview + Attrition
+### 3:00–6:00 — Overview + Attrition
 
-`uv run streamlit run app.py`
+`uv run python app.py`
 
 - Overview metrics: caption under each tile is the gold column. Operational KPIs also live on `gold.executive_kpis` **without** predicted scores. Predicted planning figures are on `gold.exec_brief`.
 - Attrition: high-risk is the **top 15%** by calibrated p(voluntary 90d). Say “planning list,” never “people we should terminate.”
@@ -91,7 +91,7 @@ Suggested questions (already wired):
 
 Then show a refuse: “Break down attrition risk by race.” Protected classes are not in the data.
 
-Line: “The assistant never computes a KPI in prose. Allowlisted gold SQL or in-process predict. A validator drops numbers that did not come from a tool. Template mode. **Genie is not live.**”
+Line: “Ask Genie is the workspace space attached as an App resource. Until that resource exists, **Genie is not live** and Ask falls back to allowlisted gold tools. A validator still drops protected-class questions.”
 
 Unknown metric (`warp_flux_99`) → will not invent a formula.
 
@@ -139,7 +139,7 @@ Ask: “If this were your as-of roster, which three actions would a nursing dire
 6. `gold.metric_catalog` — if it is not here, do not say it
 7. `gold.recommended_actions` / `gold.whatif_scenarios` / `gold.action_summary`
 8. `src/ai/tools.py` allowlist
-9. Streamlit Apply disabled; Policy page banners false
+9. React Apply disabled; Policy page banners false
 10. `docs/workspace.md` — Git folder, no auto-deploy
 
 Commands: `notebooks/01`–`06`, `pytest`.
@@ -156,7 +156,7 @@ Commands: `notebooks/01`–`06`, `pytest`.
 
 **“Why is shortage almost always flagged?”** Seed is a stressed system. Model ranks units. Quote persistence baseline. Do not sell a miracle detector.
 
-**“Is Genie on?”** Not until they create a space on the gold tables. Ask in Streamlit is template-mode until then.
+**“Is Genie on?”** Not until they create a space on the gold tables **and attach it to the App** as a Genie Agent resource. Ask is template-mode until then.
 
 **“Can you stand this up in our workspace now?”** They add the Git folder and follow [workspace.md](workspace.md). This repo does not push a pipeline, App, or Genie space.
 
@@ -166,7 +166,7 @@ Commands: `notebooks/01`–`06`, `pytest`.
 
 - [ ] `uv sync --group dev && uv run pytest`
 - [ ] `uv run python notebooks/00_fe_bar.py` — quote those numbers only
-- [ ] Streamlit up; Apply is greyed out
+- [ ] App up at http://127.0.0.1:8000; Apply is greyed out
 - [ ] Ask: coverage question, race refuse, unknown metric refuse
 - [ ] Do not flip `genie_live` / `model_serving_live`
 - [ ] Do not promise a deploy from chat

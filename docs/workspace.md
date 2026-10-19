@@ -9,19 +9,19 @@ Local equivalent (already works on this laptop):
 ```bash
 uv run python -m src.pipeline --profile seed
 uv run python -m src.ml --profile seed
-uv run streamlit run app.py
+uv run python app.py
 ```
 
 ## 1. Get the code onto Git, then into the workspace
 
 Remote: `https://github.com/ramiz-bozai/healthcare-workforce-retention.git`
 
-If `initial-build` is only on your laptop, commit and push first. A Git folder can only see what is on the remote.
+If this branch is only on your laptop, commit and push first. A Git folder can only see what is on the remote.
 
 In the workspace:
 
 1. **Repos** or **Git folder** → add the GitHub repo.
-2. Check out the branch you pushed (this work was done on `initial-build`).
+2. Check out the branch you pushed (`app-react` for this UI).
 3. Confirm you can open `pipelines/carestaff_insight/bronze.py` and `conf/default.yaml` from the folder.
 
 The Lakeflow files under `pipelines/carestaff_insight/` are **self-contained**. They do not import `src`, `data_generation`, PyYAML, or a sibling helper. Lakeflow runs every file as an **isolated notebook** (often with `__file__` outside the Git folder, and `/Workspace` not FUSE-mounted), so those imports raise `PYTHON.MODULE_NOT_FOUND_ERROR`. You do not need a wheel. You do **not** need `repo_root`.
@@ -63,7 +63,7 @@ You can upload in the Catalog Explorer UI. This repo does not copy files for you
 ## 4. Create the Lakeflow / Spark Declarative Pipeline (you click Start)
 
 1. New **ETL pipeline** / **Lakeflow** / Spark Declarative Pipeline.
-2. Source: this Git folder, directory **`pipelines/carestaff_insight` only** — `bronze.py`, `silver.py`, `gold.py`. Do **not** point the pipeline at the repo root or Lakeflow will also try to run Streamlit, tests, and the generator.
+2. Source: this Git folder, directory **`pipelines/carestaff_insight` only** — `bronze.py`, `silver.py`, `gold.py`. Do **not** point the pipeline at the repo root or Lakeflow will also try to run the App, tests, and the generator.
 3. Destination: catalog + schema from step 2.
 4. Pipeline configuration (key / value):
    - `volume_path` = `/Volumes/<catalog>/bronze/workforce_landing`  
@@ -85,7 +85,7 @@ Uniqueness and foreign keys in `conf/dq_rules.yaml` have **no** `row_predicate`.
 
 ## 5. FE Bar in the workspace (four stops)
 
-Lakeflow gold is **not** the whole FE Bar. Streamlit, Ask, risk lists, and what-if need score tables that the pipeline does not publish.
+Lakeflow gold is **not** the whole FE Bar. The React app, Ask, risk lists, and what-if need score tables that the pipeline does not publish.
 
 | Stop | Live object | Who clicks | Status |
 |---|---|---|---|
@@ -145,18 +145,31 @@ Put these on the Genie space and AI/BI, not a dump of every `gold_*` table.
 
 ### Stop 3 — Databricks App (after scores exist)
 
-Do not create the App until `gold_exec_brief` exists. `app.py` still reads **DuckDB** until the next increment wires Unity Catalog. After that increment you will: New **App** → source = Git folder **root** (not `pipelines/carestaff_insight`) → command `streamlit run app.py` → SQL warehouse resource → grant the app SP `SELECT` on the gold tables and `CAN USE` on the warehouse.
+Do not create the App until `gold_exec_brief` exists. Locally the FastAPI app reads DuckDB. In the workspace it reads Unity Catalog when a SQL warehouse is attached (`DATABRICKS_WAREHOUSE_ID` plus `CARESTTAFF_CATALOG` / `CARESTTAFF_SCHEMA` from `app.yaml`).
 
-Until that wiring lands, the workbench for the talk track is still:
+1. New **App** → source = Git folder **root** (not `pipelines/carestaff_insight`). `app.yaml` already runs `python app.py`.
+2. Add a **SQL warehouse** resource in the App UI. That injects `DATABRICKS_WAREHOUSE_ID`.
+3. Grant the app service principal `SELECT` on the gold tables (and `USE CATALOG` / `USE SCHEMA`) and `CAN USE` on the warehouse.
+4. Optional: set `CARESTTAFF_MODEL_DIR` to the model Volume from notebook 07 if you want the Attrition page in-process `predict`. Gold scores still show without it.
+5. Commit `frontend/dist` so the workspace does not need npm.
+
+Local talk-track app:
 
 ```bash
+cd frontend && npm install && npm run build && cd ..
 uv run python -m src.ml --profile seed
-uv run streamlit run app.py
+uv run python app.py
 ```
 
-### Stop 4 — Genie (you create the space)
+That is http://127.0.0.1:8000. Do not claim a Databricks App is live until you create it.
 
-New Genie space → add the `carestaff_*` metric views, plus `gold_exec_brief` / `gold_recommended_actions` after notebook 07. Same questions as `src/ai/tools.py`. Do not flip `ai.genie_live` until the space exists. The App Ask page stays template-mode until then.
+### Stop 4 — Genie (you create the space, then attach it to the App)
+
+New Genie space → add the `carestaff_*` metric views, plus `gold_exec_brief` / `gold_recommended_actions` after notebook 07. Same questions as `src/ai/tools.py`.
+
+Then on the **Databricks App**: Edit → **Add resource → Genie Agent** → pick that space → permission **Can run** → resource key `genie-space`. `app.yaml` already maps `GENIE_SPACE_ID` from `genie-space`. Grant the app SP `SELECT` on the gold tables Genie queries.
+
+Until that resource is attached, Ask uses allowlisted template tools. After it is attached, Ask calls *your* Genie space (Conversation API). Do not flip `ai.genie_live` in `conf/default.yaml` — live is detected from `GENIE_SPACE_ID`.
 
 ## 6. Sanity checks after *you* start the pipeline
 

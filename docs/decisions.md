@@ -6,7 +6,7 @@ Approved 2026-10-16. Do not change these without an explicit new decision.
 |---|---|---|
 | 1 | Working title | CareStaff Insight |
 | 2 | Clinical scope | Nursing + allied: RN, LPN, CNA, RT, ED Tech. Seed: 2 hospitals / 8 units. Demo: 3 / 12. |
-| 3 | Demo UI | Streamlit app + one walkthrough notebook (`app.py`, `notebooks/05_walkthrough.py`). |
+| 3 | Demo UI | React + FastAPI Databricks App (`frontend/`, `app.py`) + one walkthrough notebook (`notebooks/05_walkthrough.py`). Replaced Streamlit 2026-10-19. |
 | 4 | Pipeline dual-runtime | Shared SQL. DuckDB locally. Spark Declarative Pipelines in the workspace after Git connect. |
 | 5 | Shortage definition | `coverage_ratio < 0.90` **or** `open_shift_share > 0.10`. Train on 14-day. Report 28-day. |
 | 6 | Attrition definition | Voluntary separation within 90 days of a month-end snapshot. Involuntary is not the positive class. |
