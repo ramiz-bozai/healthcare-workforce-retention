@@ -6,7 +6,7 @@ This is **not** a production system, **not** trained on real employees, and **no
 
 ## Status
 
-Increments 1–9 are implemented: generator through Streamlit, Git-folder Lakeflow recipe (you click Start), and the FE Bar pack.
+Increments 1–9 are implemented: generator through the React app, Git-folder Lakeflow recipe (you click Start), and the FE Bar pack.
 
 The pipeline, Model Serving, Genie, and Databricks App are **not live**. Talk track: [docs/fe_bar.md](docs/fe_bar.md). Workspace: [docs/workspace.md](docs/workspace.md).
 
@@ -84,14 +84,19 @@ uv run python notebooks/04_inspect_assistant.py
 
 The assistant never computes a KPI in prose. Numbers come from allowlisted gold SQL or in-process `predict()`. A validator rejects numeric claims that are not in the tool payload.
 
-## Streamlit workbench (local)
+## React workbench (local)
+
+Gold must already exist (`uv run python -m src.pipeline` then `uv run python -m src.ml`). Then:
 
 ```bash
-uv run streamlit run app.py
+cd frontend && npm install && npm run build && cd ..
+uv run python app.py
 uv run python notebooks/05_walkthrough.py
 ```
 
-Pages: Overview, Attrition risk, Unit shortage, Actions & what-if, Ask, Policy. Metrics are read from gold (same columns the tools cite). Apply is disabled. Ask uses `src.ai`. This is not a Databricks App until you create one in the workspace.
+Opens at http://127.0.0.1:8000. Hot-reload UI: `uv run uvicorn app:app --reload --port 8000` in one terminal and `cd frontend && npm run dev` in another (Vite proxies `/api` to 8000).
+
+Pages: Overview, Attrition risk, Unit shortage, Actions & what-if, Ask, Policy. Metrics are read from gold (same columns the tools cite). Apply is disabled. Ask uses `src.ai`. This is not a Databricks App until you create one in the workspace. Attach a SQL warehouse there so the App reads Unity Catalog instead of DuckDB.
 
 ## Databricks workspace (you attach the Git folder)
 
@@ -133,7 +138,7 @@ uv run pytest
 12. `gold.recommended_actions` — closed playbook, all pending human review.
 13. `gold.whatif_scenarios` — assumed feature shifts vs baseline. Not applied.
 14. `src.ai` allowlist — if a metric is not in `gold.metric_catalog`, the assistant will not invent it.
-15. Streamlit `app.py` — Apply is disabled; Genie and Model Serving banners stay false.
+15. React + FastAPI `app.py` — Apply is disabled; Genie and Model Serving banners stay false.
 16. `docs/fe_bar.md` — talk track. `docs/workspace.md` — Git folder, no auto-deploy.
 
 ## Assumptions and limitations

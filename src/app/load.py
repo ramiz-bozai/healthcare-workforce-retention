@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import duckdb
 import pandas as pd
 
 from src.app.format import cite_value, driver_names
@@ -49,12 +48,9 @@ def model_dir() -> Path:
 
 
 def connect(path: Path | None = None):
-    db = path or duckdb_path()
-    if not db.exists():
-        raise FileNotFoundError(
-            f"{db} missing. Run `uv run python -m src.pipeline` then `uv run python -m src.ml`."
-        )
-    return duckdb.connect(str(db), read_only=True)
+    from src.app.connection import open_gold
+
+    return open_gold(duckdb_path=path or duckdb_path())
 
 
 def gold_tables(con) -> set[str]:

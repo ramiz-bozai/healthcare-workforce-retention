@@ -1,9 +1,9 @@
-"""Walkthrough of the Streamlit workbench data. Local; paste into a Databricks notebook later.
+"""Walkthrough of the React workbench data. Local; paste into a Databricks notebook later.
 
     uv run python -m src.pipeline --profile seed
     uv run python -m src.ml --profile seed
     uv run python notebooks/05_walkthrough.py
-    uv run streamlit run app.py
+    uv run python app.py
 """
 
 from __future__ import annotations
@@ -74,7 +74,7 @@ def main() -> None:
     con.close()
     print()
     print("Open the workbench:")
-    print("  uv run streamlit run app.py")
+    print("  uv run python app.py")
     print("Pages: Overview, Attrition risk, Unit shortage, Actions & what-if, Ask, Policy.")
     print("Apply is disabled. Not Genie. Not Model Serving.")
 

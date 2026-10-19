@@ -7,7 +7,8 @@ import re
 from src.ai.validate import format_value
 
 DISCLAIMER = (
-    "Synthetic planning workbench. Not Genie. Not Model Serving. "
+    "Synthetic planning workbench. Ask uses the attached Genie space when "
+    "GENIE_SPACE_ID is set; otherwise allowlisted template tools. Not Model Serving. "
     "Actions stay pending_human_review and are not applied. "
     "Dollars are role-average planning assumptions, not measured savings."
 )

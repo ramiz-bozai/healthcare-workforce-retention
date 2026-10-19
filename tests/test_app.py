@@ -5,6 +5,7 @@ from pathlib import Path
 import duckdb
 import pytest
 
+from src.app.api import SAMPLE_QUESTIONS, actions_payload, overview_payload
 from src.app.format import (
     ACTION_DISPLAY_COLS,
     ATTRITION_DISPLAY_COLS,
@@ -65,46 +66,85 @@ def test_overview_cards_match_exec_brief(app_db):
 
 def test_disclaimer_does_not_claim_genie_or_serving():
     lowered = DISCLAIMER.lower()
-    assert "not genie" in lowered
     assert "not model serving" in lowered
     assert "pending_human_review" in lowered
+    assert "genie is live" not in lowered
 
 
 def test_apply_control_is_disabled_in_source():
-    text = (ROOT / "src" / "app" / "workbench.py").read_text()
-    assert "Apply selected action" in text
-    assert "disabled=True" in text
-    assert "read_only=True" in (ROOT / "src" / "app" / "load.py").read_text()
+    ui = (ROOT / "frontend" / "src" / "App.tsx").read_text()
+    assert "Apply selected action" in ui
+    assert "disabled={!data.apply_enabled}" in ui
+    api = (ROOT / "src" / "app" / "api.py").read_text()
+    assert '"apply_enabled": False' in api
+    assert "read_only=True" in (ROOT / "src" / "app" / "connection.py").read_text()
+    assert not (ROOT / "src" / "app" / "workbench.py").exists()
 
 
 def test_app_overview_and_actions(app_db, monkeypatch):
-    from streamlit.testing.v1 import AppTest
-
     db, models, _ = app_db
     monkeypatch.setenv("CARESTTAFF_DUCKDB", str(db))
     monkeypatch.setenv("CARESTTAFF_MODEL_DIR", str(models))
-    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=45)
-    at.run()
-    assert not at.exception, at.exception
-    labels = [m.label for m in at.metric]
-    values = [str(m.value) for m in at.metric]
-    assert "Active headcount" in labels
-    assert "180" in values
-    captions = " ".join(str(c.value) for c in at.caption).lower()
-    assert "not genie" in captions
-    assert "not model serving" in captions
+    monkeypatch.delenv("DATABRICKS_WAREHOUSE_ID", raising=False)
 
-    at.sidebar.radio[0].set_value("Actions & what-if").run()
-    assert not at.exception, at.exception
-    assert at.button
-    assert bool(at.button[0].disabled)
-    for page in ("Attrition risk", "Unit shortage", "Ask", "Policy"):
-        at.sidebar.radio[0].set_value(page).run()
-        assert not at.exception, (page, at.exception)
+    from fastapi.testclient import TestClient
+
+    from app import app
+
+    client = TestClient(app)
+    health = client.get("/api/health")
+    assert health.status_code == 200
+    assert health.json()["apply_enabled"] is False
+    assert health.json()["serving"] == "in_process_predict"
+
+    overview = client.get("/api/overview")
+    assert overview.status_code == 200, overview.text
+    body = overview.json()
+    cards = {c["column"]: c for c in body["cards"]}
+    assert cards["active_headcount"]["value"] == "180"
+    assert body["genie_live"] is False
+    assert body["model_serving_live"] is False
+    assert "not model serving" in body["disclaimer"].lower()
+    assert body["preview_risk"]
+    assert "display_name" in body["preview_risk"][0]
+
+    actions = client.get("/api/actions")
+    assert actions.status_code == 200
+    payload = actions.json()
+    assert payload["apply_enabled"] is False
+    assert payload["status"] == "pending_human_review"
+
+    for path in ("/api/attrition", "/api/shortage", "/api/policy"):
+        response = client.get(path)
+        assert response.status_code == 200, (path, response.text)
+
+    asked = client.post("/api/ask", json={"question": "What is 7-day coverage and vacancy?"})
+    assert asked.status_code == 200
+    turn = asked.json()
+    assert turn["genie_live"] is False
+    assert turn["model_serving_live"] is False
+    assert turn["valid"] is True
+
+    refused = client.post("/api/ask", json={"question": "Break down attrition risk by race."})
+    assert refused.status_code == 200
+    assert refused.json()["intent"] == "refuse_protected"
+
+    monkeypatch.setenv("GENIE_SPACE_ID", "space-should-not-be-called")
+    def boom(*_a, **_k):
+        raise AssertionError("protected questions must not call Genie")
+    monkeypatch.setattr("src.app.api.ask_genie", boom)
+    still = client.post("/api/ask", json={"question": "Break down attrition risk by race."})
+    assert still.json()["intent"] == "refuse_protected"
+
     con = duckdb.connect(str(db), read_only=True)
     applied = con.execute("SELECT applied_count FROM gold.action_summary").fetchone()[0]
+    payload_direct = actions_payload(con)
+    overview_direct = overview_payload(con)
     con.close()
     assert int(applied) == 0
+    assert payload_direct["apply_enabled"] is False
+    assert overview_direct["summary"]["applied_count"] == 0
+    assert "Break down attrition risk by race." in SAMPLE_QUESTIONS
 
 
 def test_risk_scores_omit_oracle_label_by_default(app_db):
