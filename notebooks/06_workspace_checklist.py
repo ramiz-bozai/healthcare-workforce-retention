@@ -58,8 +58,13 @@ def main() -> None:
     print(f"Per-row expects ({len(row)}):", ", ".join(row))
     print(f"Set-level (workspace query, not expect_or_drop) ({len(set_level)}):", ", ".join(set_level))
     print()
+    print()
+    models_nb = ROOT / "notebooks" / "07_workspace_models.py"
+    print("=== After gold, run workspace models (not Lakeflow) ===")
+    print(f"  {'ok' if models_nb.exists() else 'MISSING':7} notebooks/07_workspace_models.py")
+    print()
     print("This script did not create a pipeline, App, Genie space, or Serving endpoint.")
-    print("Follow docs/workspace.md in your workspace. You click Start.")
+    print("Follow docs/workspace.md. Pipeline Start, then notebook 07, then App/Genie.")
 
 
 if __name__ == "__main__":

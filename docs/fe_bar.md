@@ -98,9 +98,9 @@ Unknown metric (`warp_flux_99`) → will not invent a formula.
 ### 11:00–13:00 — Platform path (no live claim)
 
 - One logical design, two runtimes. Local DuckDB is how we test. Databricks is the customer story **after they connect this Git repo**.
-- You do **not** auto-deploy. Operator steps: [workspace.md](workspace.md). Source = `pipelines/carestaff_insight` only. They click Start.
-- Lakeflow tables are `bronze_*` / `silver_*` / `gold_*`. `src.ml` and Streamlit still read local DuckDB until someone writes a Spark-pandas job.
-- Optional later (not done): Databricks App wrapping `app.py`, Genie space on gold using the same allowlist, Model Serving instead of in-process predict.
+- You do **not** auto-deploy. Operator steps: [workspace.md](workspace.md). Pipeline source = `pipelines/carestaff_insight` only. They click Start, then run `notebooks/07_workspace_models.py` for scores.
+- Lakeflow gold is operational (`gold_executive_kpis` has no predictions). Scores land in `gold_exec_brief` / `gold_employee_risk_scores` from notebook 07. Not Model Serving.
+- Next clicks after scores: Databricks App wrapping `app.py`, Genie space on gold using the same allowlist. Do not stand up Model Serving for this bar.
 
 ### 13:00–15:00 — Close
 
@@ -156,9 +156,9 @@ Commands: `notebooks/01`–`06`, `pytest`.
 
 **“Why is shortage almost always flagged?”** Seed is a stressed system. Model ranks units. Quote persistence baseline. Do not sell a miracle detector.
 
-**“Is Genie on?”** No. Same questions would be a Genie space on gold after they create one.
+**“Is Genie on?”** Not until they create a space on the gold tables. Ask in Streamlit is template-mode until then.
 
-**“Can you stand this up in our workspace now?”** They add the Git folder and follow [workspace.md](workspace.md). This repo does not push a pipeline.
+**“Can you stand this up in our workspace now?”** They add the Git folder and follow [workspace.md](workspace.md). This repo does not push a pipeline, App, or Genie space.
 
 ---
 

@@ -83,20 +83,66 @@ Gold SQL is the Spark rewrite of `src/gold/sql.py` (`generate_series` → `seque
 
 Uniqueness and foreign keys in `conf/dq_rules.yaml` have **no** `row_predicate`. Locally they land in `silver.dq_violations`. In the workspace, run those rule SQLs as a query or materialized view after silver exists. Do not force them into `expect_or_drop`.
 
-## 5. After gold exists — optional, still you
+## 5. FE Bar in the workspace (four stops)
 
-**Inspect.** Open `notebooks/01_inspect_gold_grains.py` from the Git folder and point queries at `gold_*` in the target schema (rename `gold.executive_kpis` → `<catalog>.<schema>.gold_executive_kpis`).
+Lakeflow gold is **not** the whole FE Bar. Streamlit, Ask, risk lists, and what-if need score tables that the pipeline does not publish.
 
-**Models / what-if / Streamlit.** `src.ml` and `app.py` read **local DuckDB**, not these Spark tables. For the FE Bar, keep scoring and the workbench on the laptop unless you later write a job that pulls gold to pandas. Do not claim Model Serving.
+| Stop | Live object | Who clicks | Status |
+|---|---|---|---|
+| 1 | Lakeflow `gold_executive_kpis` + feature tables | You (pipeline Start) | You are here if gold exists |
+| 2 | Score / action tables + optional model Volume | You run `notebooks/07_workspace_models.py` | Next |
+| 3 | Databricks App wrapping `app.py` | You create the App | After stop 2 |
+| 4 | Genie space on gold (Ask in the App is template until then) | You create the space | After stop 2 |
 
-**Databricks App.** If you later host the workbench: create an App yourself, working directory = Git folder root, command `streamlit run app.py`. Not created by this repo.
+**Not in this path:** Model Serving. Scoring is in-process in the notebook (same sklearn objects as local). `ai.model_serving_live` stays false. Do not claim an endpoint.
 
-**Genie.** If you later add a space, point it at the gold tables and the same questions as `src/ai/tools.py`. Template fallback stays until an FM endpoint is wired. Not created by this repo.
+### Stop 2 — models notebook (you click Run)
+
+1. Commit / push / refresh the Git folder so `notebooks/07_workspace_models.py` is there.
+2. Optional: Catalog Explorer → create Volume `<catalog>.<schema>.carestaff_models` (or any schema you prefer). Needed later if the App should call in-process `predict`.
+3. Open `notebooks/07_workspace_models.py` **from the Git folder** (not copied into the Lakeflow source dir, not Run file on a pipeline).
+4. Attach a cluster or serverless notebook compute. Widgets:
+   - `catalog` / `schema` = the same target as the pipeline
+   - `model_volume` = `/Volumes/<catalog>/<schema>/carestaff_models` or leave blank
+5. **Run all**. First cell installs duckdb / sklearn.
+
+It writes (overwrite) into that schema, prefixed like Lakeflow:
+
+`gold_employee_risk_scores`, `gold_unit_shortage_forecast`, `gold_exec_brief`, `gold_recommended_actions`, `gold_whatif_scenarios`, `gold_action_summary`, `gold_model_metrics`, `gold_model_fairness_slices`, `gold_model_calibration_bins`, `gold_model_feature_importances`, and a merged `gold_metric_catalog`.
+
+It does **not** overwrite Lakeflow feature tables (`gold_employee_month_features`, `gold_unit_*`, `gold_executive_kpis`, …). If you **Run pipeline** again later, re-run this notebook so `gold_metric_catalog` model rows come back.
+
+Sanity after the notebook:
+
+```sql
+SELECT as_of_date, active_headcount, high_risk_headcount,
+       predicted_attrition_rate_90d, predicted_shortage_units_14d
+FROM <catalog>.<schema>.gold_exec_brief;
+
+SELECT uniform_status, applied_count FROM <catalog>.<schema>.gold_action_summary;
+```
+
+Expect one exec row, `as_of_date = 2026-09-01`, `applied_count = 0`, status `pending_human_review`.
+
+### Stop 3 — Databricks App (after scores exist)
+
+Do not create the App until `gold_exec_brief` exists. `app.py` still reads **DuckDB** until the next increment wires Unity Catalog. After that increment you will: New **App** → source = Git folder **root** (not `pipelines/carestaff_insight`) → command `streamlit run app.py` → SQL warehouse resource → grant the app SP `SELECT` on the gold tables and `CAN USE` on the warehouse.
+
+Until that wiring lands, the workbench for the talk track is still:
+
+```bash
+uv run python -m src.ml --profile seed
+uv run streamlit run app.py
+```
+
+### Stop 4 — Genie (you create the space)
+
+New Genie space → add `gold_exec_brief`, `gold_employee_risk_scores`, `gold_unit_shortage_forecast`, `gold_recommended_actions`, `gold_metric_catalog`, `gold_executive_kpis`. Same questions as `src/ai/tools.py`. Do not flip `ai.genie_live` until the space exists. The App Ask page stays template-mode until then.
 
 ## 6. Sanity checks after *you* start the pipeline
 
 - `gold_executive_kpis` has one row, `as_of_date = 2026-09-01`
-- `coverage_ratio_7d` is populated; `predicted_attrition_rate_90d` is **not** on that table (scores are a later job)
+- `coverage_ratio_7d` is populated; `predicted_attrition_rate_90d` is **not** on that table until stop 2 (`gold_exec_brief`)
 - Employee columns still have no age/sex/race/SSN
 - Nothing in this laptop’s repo flipped `ai.genie_live` or `ai.model_serving_live`
 
