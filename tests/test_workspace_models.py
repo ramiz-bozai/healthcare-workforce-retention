@@ -12,6 +12,7 @@ from src.ml.workspace_run import (
     duckdb_from_frames,
     frames_from_connection,
     run_from_frames,
+    spark_output_name,
     uc_fqn,
     uc_table,
     write_frames_to_spark,
@@ -27,9 +28,12 @@ def test_uc_names_match_lakeflow_prefix():
         "healthcare_ops.carestaff_insight.silver_employees"
     )
     assert "executive_kpis" in PIPELINE_OWNED_GOLD
+    assert "metric_catalog" in PIPELINE_OWNED_GOLD
     assert "exec_brief" not in PIPELINE_OWNED_GOLD
     assert "exec_brief" in OUTPUT_TABLES
     assert "employee_month_features" not in OUTPUT_TABLES
+    assert spark_output_name("metric_catalog") == "metric_catalog_scored"
+    assert spark_output_name("exec_brief") == "exec_brief"
 
 
 def test_refuses_to_overwrite_pipeline_feature_tables():
@@ -44,6 +48,41 @@ def test_refuses_to_overwrite_pipeline_feature_tables():
             "s",
             {"employee_month_features": pd.DataFrame({"employee_id": ["EMP-000001"]})},
         )
+
+
+def test_metric_catalog_writes_under_scored_name():
+    written: list[str] = []
+
+    class Writer:
+        def format(self, _fmt):
+            return self
+
+        def mode(self, _mode):
+            return self
+
+        def option(self, *_args, **_kwargs):
+            return self
+
+        def saveAsTable(self, fqn):
+            written.append(fqn)
+
+    class Frame:
+        @property
+        def write(self):
+            return Writer()
+
+    class Dummy:
+        def createDataFrame(self, df):
+            return Frame()
+
+    out = write_frames_to_spark(
+        Dummy(),
+        "c",
+        "s",
+        {"metric_catalog": pd.DataFrame({"metric_name": ["coverage_ratio_7d"]})},
+    )
+    assert out == ["c.s.gold_metric_catalog_scored"]
+    assert written == ["c.s.gold_metric_catalog_scored"]
 
 
 def test_duckdb_bridge_from_local_gold(tmp_path: Path):

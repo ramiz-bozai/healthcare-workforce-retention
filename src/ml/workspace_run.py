@@ -39,6 +39,7 @@ OUTPUT_TABLES = (
     "metric_catalog",
 )
 
+# Lakeflow materializes these (often not as unmanaged Delta). Do not saveAsTable them.
 PIPELINE_OWNED_GOLD = frozenset(
     {
         "snapshot_calendar",
@@ -47,8 +48,14 @@ PIPELINE_OWNED_GOLD = frozenset(
         "unit_week_features",
         "employee_month_features",
         "executive_kpis",
+        "metric_catalog",
     }
 )
+
+# Merged catalog (ops + model metrics) cannot replace the pipeline table.
+SPARK_WRITE_AS = {
+    "metric_catalog": "metric_catalog_scored",
+}
 
 
 def uc_table(layer: str, name: str) -> str:
@@ -131,13 +138,24 @@ def output_frames(con) -> dict[str, pd.DataFrame]:
     return out
 
 
+def spark_output_name(name: str) -> str:
+    return SPARK_WRITE_AS.get(name, name)
+
+
 def write_frames_to_spark(spark, catalog: str, schema: str, frames: dict[str, pd.DataFrame]) -> list[str]:
     written: list[str] = []
     for name, pdf in frames.items():
-        if name in PIPELINE_OWNED_GOLD:
-            raise ValueError(f"Refusing to overwrite Lakeflow-owned gold table {name}")
-        fqn = uc_fqn(catalog, schema, "gold", name)
-        spark.createDataFrame(pdf).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(fqn)
+        dest = spark_output_name(name)
+        if dest in PIPELINE_OWNED_GOLD:
+            raise ValueError(f"Refusing to overwrite Lakeflow-owned gold table {dest}")
+        fqn = uc_fqn(catalog, schema, "gold", dest)
+        (
+            spark.createDataFrame(pdf)
+            .write.format("delta")
+            .mode("overwrite")
+            .option("overwriteSchema", "true")
+            .saveAsTable(fqn)
+        )
         written.append(fqn)
     return written
 
