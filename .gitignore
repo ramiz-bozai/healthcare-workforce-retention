@@ -24,6 +24,11 @@ data/generated/*
 node_modules/
 npm-debug.log*
 
+# Laptop uv.toml points at pypi-proxy.dev.databricks.com. Databricks Apps cannot
+# reach that host, so do not ship a lock with those URLs. Apps resolve pyproject
+# against public PyPI.
+uv.lock
+
 # Keep frontend/dist committed so a Git-folder Databricks App can serve the SPA
 # without npm in the workspace.
 
