@@ -27,7 +27,7 @@ from src.app.api import (
     policy_payload,
     shortage_payload,
 )
-from src.app.connection import open_gold
+from src.app.connection import lakebase_configured, open_gold, warehouse_configured
 from src.app.format import DISCLAIMER
 from src.app.genie import is_live
 from src.app.load import model_dir, require_gold
@@ -36,6 +36,14 @@ ROOT = Path(__file__).resolve().parent
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 
 app = FastAPI(title="CareStaff Insight", docs_url=None, redoc_url=None, openapi_url=None)
+
+
+def data_serving_mode() -> str:
+    if lakebase_configured():
+        return "lakebase"
+    if warehouse_configured():
+        return "sql_warehouse"
+    return "duckdb"
 
 
 class AskBody(BaseModel):
@@ -70,6 +78,7 @@ def health():
         "model_dir": str(model_dir()),
         "apply_enabled": False,
         "serving": "in_process_predict",
+        "data_serving": data_serving_mode(),
         "genie_live": is_live(),
     }
 

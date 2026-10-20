@@ -7,11 +7,12 @@ CareStaff Insight is a planning workbench for health-system workforce risk. One 
 | Stage | Local fallback | Databricks path |
 |---|---|---|
 | Generate | `python -m data_generation` → CSV | Same files in a UC Volume |
-| Bronze | Register raw files | Lakeflow streaming tables / Auto Loader |
+| Bronze | Register raw files | Lakeflow tables reading a UC Volume |
 | Silver / gold | DuckDB runs the SQL | Spark Declarative Pipelines + materialized views |
 | DQ | pytest + SQL assertions | Pipeline expectations |
 | ML | sklearn/LightGBM + local MLflow | Workspace MLflow, same pyfunc |
-| Serving | In-process `predict()` | Optional Model Serving |
+| Operational serving | DuckDB gold | Lakebase Autoscaling synced tables for exec brief, risk, and shortage |
+| Model inference | In-process `predict()` | In-process `predict()`; no Model Serving endpoint |
 | AI | Allowlisted SQL tools + citation validator; template fallback | Genie on gold + FM API narrating tool results only |
 | UX | FastAPI + React (`app.py`, `frontend/`) | Same app as a Databricks App + walkthrough notebook |
 
@@ -37,6 +38,10 @@ flowchart LR
     M2[14-day shortage model]
     SQL[Allowlisted SQL / Genie]
   end
+  subgraph serving [Operational serving]
+    LB[Lakebase synced tables]
+    WH[SQL warehouse]
+  end
   subgraph ux [Experience]
     APP[React workbench]
     ACT[Playbook actions pending human review]
@@ -49,15 +54,17 @@ flowchart LR
   G --> M1
   G --> M2
   G --> SQL
-  M1 --> APP
-  M2 --> APP
-  SQL --> APP
+  M1 --> LB
+  M2 --> LB
+  G --> WH
+  LB --> APP
+  WH --> SQL --> APP
   APP --> ACT
 ```
 
 ## Current increment
 
-Increments 1–9 are complete: generator through the React workbench, Git-folder Lakeflow recipe, FE Bar pack ([fe_bar.md](fe_bar.md)). Operator steps: [workspace.md](workspace.md). **Not auto-deployed.** The pipeline has not been executed. Model Serving is not live. Genie is not live. `app.py` is not a Databricks App until you create one. Actions are never auto-applied.
+The repository includes the generator, React workbench, Git-folder Lakeflow recipe, workspace scoring and metric-view notebooks, Lakebase synced-table notebook, and FE Bar pack ([fe_bar.md](fe_bar.md)). Operator steps: [workspace.md](workspace.md). **Not auto-deployed.** Model Serving is not used. Actions are never auto-applied.
 
 Training is production-honest: only labels whose window ends on or before as_of. Metrics on the as_of roster use generator future labels and are labeled `inference_demo_oracle`. Fairness slices are operational (role, facility, tenure, shift, unit) — the data has no protected class.
 
