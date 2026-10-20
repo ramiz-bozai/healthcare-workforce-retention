@@ -96,7 +96,7 @@ uv run python notebooks/05_walkthrough.py
 
 Opens at http://127.0.0.1:8000. Hot-reload UI: `uv run uvicorn app:app --reload --port 8000` in one terminal and `cd frontend && npm run dev` in another (Vite proxies `/api` to 8000).
 
-Pages: Overview, Attrition risk, Unit shortage, Actions & what-if, Ask, Policy. Metrics are read from gold (same columns the tools cite). Apply is disabled. Ask uses `src.ai`. This is not a Databricks App until you create one in the workspace. Attach a SQL warehouse there so the App reads Unity Catalog instead of DuckDB.
+Pages: Overview, Attrition risk, Unit shortage, Actions & what-if, Ask, Policy. Metrics are read from gold (same columns the tools cite). Apply is disabled. Ask uses `src.ai`. This is not a Databricks App until you create one in the workspace. In Databricks, attach both the Lakebase Autoscaling database (`postgres`) and SQL warehouse (`sql-warehouse`): operational risk/shortage reads use Lakebase synced tables; supporting analytics and Genie use the warehouse.
 
 ## Databricks workspace (you attach the Git folder)
 
@@ -107,6 +107,8 @@ uv run python notebooks/06_workspace_checklist.py
 ```
 
 Lakeflow source (only this directory): `pipelines/carestaff_insight/`. You click Start.
+
+Workspace order: Lakeflow → notebook 07 scores → notebook 08 metric views → notebook 09 Lakebase serving sync → App + Genie. See [docs/workspace.md](docs/workspace.md).
 
 ## FE Bar pack
 
@@ -138,8 +140,9 @@ uv run pytest
 12. `gold.recommended_actions` — closed playbook, all pending human review.
 13. `gold.whatif_scenarios` — assumed feature shifts vs baseline. Not applied.
 14. `src.ai` allowlist — if a metric is not in `gold.metric_catalog`, the assistant will not invent it.
-15. React + FastAPI `app.py` — Apply is disabled; Genie and Model Serving banners stay false.
-16. `docs/fe_bar.md` — talk track. `docs/workspace.md` — Git folder, no auto-deploy.
+15. `notebooks/09_lakebase_serving.py` — three gold-to-Lakebase synced serving tables.
+16. React + FastAPI `app.py` — Apply is disabled; Genie and Model Serving banners stay false.
+17. `docs/fe_bar.md` — talk track. `docs/workspace.md` — Git folder, no auto-deploy.
 
 ## Assumptions and limitations
 

@@ -6,6 +6,10 @@ env:
     value: healthcare_ops
   - name: CARESTAFF_SCHEMA
     value: carestaff_insight
+  - name: CARESTAFF_LAKEBASE_SCHEMA
+    value: carestaff_insight
+  - name: LAKEBASE_ENDPOINT
+    valueFrom: postgres
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse
   - name: GENIE_SPACE_ID

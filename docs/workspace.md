@@ -83,7 +83,7 @@ Gold SQL is the Spark rewrite of `src/gold/sql.py` (`generate_series` → `seque
 
 Uniqueness and foreign keys in `conf/dq_rules.yaml` have **no** `row_predicate`. Locally they land in `silver.dq_violations`. In the workspace, run those rule SQLs as a query or materialized view after silver exists. Do not force them into `expect_or_drop`.
 
-## 5. FE Bar in the workspace (four stops)
+## 5. FE Bar in the workspace (five stops)
 
 Lakeflow gold is **not** the whole FE Bar. The React app, Ask, risk lists, and what-if need score tables that the pipeline does not publish.
 
@@ -91,8 +91,9 @@ Lakeflow gold is **not** the whole FE Bar. The React app, Ask, risk lists, and w
 |---|---|---|---|
 | 1 | Lakeflow `gold_executive_kpis` + feature tables | You (pipeline Start) | You are here if gold exists |
 | 2 | Score / action tables + optional model Volume | You run `notebooks/07_workspace_models.py` | Next |
-| 3 | Databricks App wrapping `app.py` | You create the App | After stop 2 |
-| 4 | Genie space on gold (Ask in the App is template until then) | You create the space | After stop 2 |
+| 3 | Lakebase Autoscaling + three synced serving tables | You run `notebooks/09_lakebase_serving.py` | After stop 2 |
+| 4 | Databricks App wrapping `app.py` | You create the App | After stop 3 |
+| 5 | Genie space on gold | You create the space | After stop 2 |
 
 **Not in this path:** Model Serving. Scoring is in-process in the notebook (same sklearn objects as local). `ai.model_serving_live` stays false. Do not claim an endpoint.
 
@@ -143,15 +144,40 @@ GROUP BY department_id
 
 Put these on the Genie space and AI/BI, not a dump of every `gold_*` table.
 
-### Stop 3 — Databricks App (after scores exist)
+### Stop 3 — Lakebase operational serving (after scores exist)
 
-Do not create the App until `gold_exec_brief` exists. Locally the FastAPI app reads DuckDB. In the workspace it reads Unity Catalog when a SQL warehouse is attached (`DATABRICKS_WAREHOUSE_ID` plus `CARESTAFF_CATALOG` / `CARESTAFF_SCHEMA` from `app.yaml`).
+1. Create a **Lakebase Autoscaling** project and a Postgres database (suggested project `carestaff-insight`, database `carestaff`).
+2. Open `notebooks/09_lakebase_serving.py` from the Git folder.
+3. Set its `branch` widget to the full branch resource path, such as `projects/carestaff-insight/branches/production`; set `postgres_database` to the database name.
+4. Run all. It enables Change Data Feed and creates triggered synced tables:
+   - `gold_exec_brief` → `gold_exec_brief_serving`
+   - `gold_employee_risk_scores` → `gold_employee_risk_scores_serving`
+   - `gold_unit_shortage_forecast` → `gold_unit_shortage_forecast_serving`
+5. Wait until all three synced tables show `ONLINE`. After rerunning notebook 07, trigger their sync before the demo.
+
+This is the App's low-latency operational serving path. Supporting gold tables and Genie remain on the SQL warehouse.
+
+### Stop 4 — Databricks App (after Lakebase sync exists)
+
+Do not create the App until `gold_exec_brief` and its three Lakebase serving tables exist. Locally the FastAPI app reads DuckDB. In the workspace it uses Lakebase for the executive brief, risk queue, and shortage forecast, and the SQL warehouse for supporting analytical tables.
 
 1. New **App** → source = Git folder **root** (not `pipelines/carestaff_insight`). `app.yaml` already runs `python app.py`.
-2. Add a **SQL warehouse** resource in the App UI. That injects `DATABRICKS_WAREHOUSE_ID`.
-3. Grant the app service principal `SELECT` on the gold tables (and `USE CATALOG` / `USE SCHEMA`) and `CAN USE` on the warehouse.
-4. Optional: set `CARESTAFF_MODEL_DIR` to the model Volume from notebook 07 if you want the Attrition page in-process `predict`. Gold scores still show without it.
-5. Commit `frontend/dist` so the workspace does not need npm.
+2. Add the **Lakebase Autoscaling database** as an App resource: permission **Can connect and create**, resource key `postgres`. This injects the endpoint plus the standard `PG*` connection variables.
+3. Add a **SQL warehouse** resource: permission **Can use**, resource key `sql-warehouse`.
+4. Grant the app service principal `USE CATALOG`, `USE SCHEMA`, and `SELECT` on `healthcare_ops.carestaff_insight`.
+5. The Lakebase resource creates a Postgres role named for the App service-principal client ID, but it does not grant that role access to existing synced tables. As `databricks_superuser`, run:
+
+```sql
+GRANT USAGE ON SCHEMA carestaff_insight TO "<app-service-principal-client-id>";
+GRANT SELECT ON TABLE
+  carestaff_insight.gold_exec_brief_serving,
+  carestaff_insight.gold_employee_risk_scores_serving,
+  carestaff_insight.gold_unit_shortage_forecast_serving
+TO "<app-service-principal-client-id>";
+```
+
+6. Optional: set `CARESTAFF_MODEL_DIR` to the model Volume from notebook 07 if you want the Attrition page in-process `predict`. Gold scores still show without it.
+7. Commit `frontend/dist` so the workspace does not need npm.
 
 Local talk-track app:
 
@@ -163,7 +189,7 @@ uv run python app.py
 
 That is http://127.0.0.1:8000. Do not claim a Databricks App is live until you create it.
 
-### Stop 4 — Genie (you create the space, then attach it to the App)
+### Stop 5 — Genie (you create the space, then attach it to the App)
 
 New Genie space → add the `carestaff_*` metric views, plus `gold_exec_brief` / `gold_recommended_actions` after notebook 07. Same questions as `src/ai/tools.py`.
 

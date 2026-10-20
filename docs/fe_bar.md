@@ -45,14 +45,15 @@ Catalog / schema: `healthcare_ops.carestaff_insight`. You create these in the wo
 
 | Asset | What it is |
 |---|---|
-| Git folder | This repo, branch you pushed (`app-react` for the App UI) |
+| Git folder | This repo, branch you pushed (`add-lakebase`) |
 | Volume | `/Volumes/healthcare_ops/bronze/workforce_landing` — seed CSVs for bronze |
 | Lakeflow pipeline | `pipelines/carestaff_insight` → `bronze_*`, `silver_*`, ops `gold_*` (`gold_executive_kpis`, coverage, features) |
 | Notebook 07 | Writes score/action gold: `gold_exec_brief`, `gold_employee_risk_scores`, `gold_unit_shortage_forecast`, `gold_recommended_actions`, `gold_whatif_scenarios`, `gold_action_summary`, model metrics |
 | Optional Volume | `carestaff_models` — sklearn objects for in-process `predict` (not Model Serving) |
 | Notebook 08 | Metric views: `carestaff_unit_coverage`, `carestaff_as_of_roster`, `carestaff_attrition_risk`, `carestaff_unit_shortage` |
+| Lakebase Autoscaling | Notebook 09 syncs the executive brief, employee risk scores, and shortage forecast into three triggered Postgres serving tables |
 | SQL warehouse | App resource, key `sql-warehouse` → `DATABRICKS_WAREHOUSE_ID`. App SP: **Can use** |
-| Databricks App | FastAPI + React (`app.py`). Reads UC gold. App SP: `USE CATALOG` / `USE SCHEMA` / `SELECT` on the schema |
+| Databricks App | FastAPI + React (`app.py`). Reads live-serving tables from Lakebase and supporting analytics from the SQL warehouse |
 | Genie space | Metric views + `gold_exec_brief` / `gold_recommended_actions`. Attached to the App as Genie Agent, key `genie-space`, **Can run** |
 
 **Not built:** Model Serving endpoint. Scoring is notebook + in-process `predict`.
@@ -120,7 +121,8 @@ Unknown metric (`warp_flux_99`) → will not invent a formula.
 - One logical design, two runtimes. Local DuckDB is how we test. Databricks is the customer story **after they connect this Git repo**.
 - You do **not** auto-deploy. Operator steps: [workspace.md](workspace.md). Pipeline source = `pipelines/carestaff_insight` only. They click Start, then run `notebooks/07_workspace_models.py` for scores.
 - Lakeflow gold is operational (`gold_executive_kpis` has no predictions). Scores land in `gold_exec_brief` / `gold_employee_risk_scores` from notebook 07. Not Model Serving.
-- Next clicks after scores: Databricks App wrapping `app.py`, Genie space on gold using the same allowlist. Do not stand up Model Serving for this bar.
+- Notebook 09 syncs the executive brief, employee risk queue, and shortage forecast into Lakebase Autoscaling. The App serves those operational reads from Lakebase; Genie and supporting analytics use the SQL warehouse.
+- Next clicks after scores: Lakebase sync, Databricks App wrapping `app.py`, then attach the Genie space. Do not stand up Model Serving for this bar.
 
 ### 13:00–15:00 — Close
 
@@ -160,7 +162,8 @@ Ask: “If this were your as-of roster, which three actions would a nursing dire
 7. `gold.recommended_actions` / `gold.whatif_scenarios` / `gold.action_summary`
 8. `src/ai/tools.py` allowlist
 9. React Apply disabled; Policy page banners false
-10. `docs/workspace.md` — Git folder, no auto-deploy
+10. `notebooks/09_lakebase_serving.py` — Delta-to-Lakebase serving path
+11. `docs/workspace.md` — Git folder, no auto-deploy
 
 Commands: `notebooks/01`–`06`, `pytest`.
 

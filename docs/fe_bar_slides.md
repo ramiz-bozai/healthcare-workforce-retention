@@ -191,8 +191,11 @@ Governed tables, metric views, lineage, and service-principal access
 → **Scoring and planning**  
 Attrition scores · shortage outlook · executive brief · actions · what-if scenarios
 
+→ **Lakebase operational serving**
+Triggered sync of executive brief · employee risk queue · shortage forecast
+
 → **Consumption**  
-Databricks App + SQL warehouse + Genie space
+Databricks App (Lakebase + SQL warehouse) · Genie space
 
 ## Visual direction
 
@@ -200,7 +203,7 @@ Create a left-to-right architecture diagram. Put Unity Catalog as a governance b
 
 ## Speaker notes
 
-The workspace schema is `healthcare_ops.carestaff_insight`. Lakeflow produces the operational gold layer. Notebook 07 creates score and action tables. Notebook 08 creates four metric views. The FastAPI + React App reads gold through an attached SQL warehouse, and its embedded Genie experience calls the attached Genie space.
+The workspace schema is `healthcare_ops.carestaff_insight`. Lakeflow produces the operational gold layer. Notebook 07 creates score and action tables. Notebook 08 creates four metric views. Notebook 09 syncs three serving tables into Lakebase Autoscaling. The FastAPI + React App reads live operational views from Lakebase and supporting analytics from the SQL warehouse; its embedded Genie experience calls the attached Genie space.
 
 ---
 
@@ -214,8 +217,9 @@ The workspace schema is `healthcare_ops.carestaff_insight`. Lakeflow produces th
 - **Unity Catalog:** `healthcare_ops.carestaff_insight`
 - **Four metric views:** coverage, as-of roster, attrition risk, unit shortage
 - **Scoring notebook:** risk, shortage, model diagnostics, action and what-if tables
+- **Lakebase Autoscaling:** three triggered synced tables for low-latency application reads
 - **Databricks App:** React command center with a FastAPI backend
-- **SQL warehouse resource:** governed application query path
+- **SQL warehouse resource:** supporting analytics and Genie query path
 - **Genie space:** attached to the App for conversational analytics
 - **Git folder:** repeatable source for pipeline, notebooks, App, tests, and documentation
 

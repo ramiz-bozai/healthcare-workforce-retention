@@ -96,6 +96,7 @@ def test_app_overview_and_actions(app_db, monkeypatch):
     assert health.status_code == 200
     assert health.json()["apply_enabled"] is False
     assert health.json()["serving"] == "in_process_predict"
+    assert health.json()["data_serving"] == "duckdb"
 
     overview = client.get("/api/overview")
     assert overview.status_code == 200, overview.text
